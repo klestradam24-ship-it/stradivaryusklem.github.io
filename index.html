@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stradivaryus Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Librería para generar PDF (solo para recibo del carrito) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Librería jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Librería AutoTable para tablas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+</head>
+<body>
+  <!-- Encabezado -->
+  <header>
+    <!-- Galería de imágenes en el título (slider automático) -->
+    <section id="galeria-titulo">
+      <div class="slider">
+        <img class="slide active" src="1.jpg" alt="Imagen 1">
+        <img class="slide" src="2.jpg" alt="Imagen 2">
+        <img class="slide" src="3.jpg" alt="Imagen 3">
+        <img class="slide" src="4.jpg" alt="Imagen 4">
+        <img class="slide" src="5.jpg" alt="Imagen 5">
+        <img class="slide" src="6.jpg" alt="Imagen 6">
+        <img class="slide" src="7.jpg" alt="Imagen 7">
+        <img class="slide" src="8.jpg" alt="Imagen 8">
+        <img class="slide" src="9.jpg" alt="Imagen 9">
+        <img class="slide" src="10.jpg" alt="Imagen 10">
+        <img class="slide" src="11.jpg" alt="Imagen 11">
+        <img class="slide" src="12.jpg" alt="Imagen 12">
+        <img class="slide" src="13.jpg" alt="Imagen 13">
+      </div>
+    </section>
+
+    <h1>🛒 Stradivaryus Tools</h1>
+
+    <h2>El Rincón de tus Herramientas</h2>
+
+    <!-- Menú -->
+    <nav>
+      <button onclick="mostrarSeccion('productos')"> 🧰Productos 🛠️</button>
+      <button onclick="mostrarSeccion('carrito')">Carrito de Compras 🛒 </button>
+      <button onclick="abrirRegistroCliente()">👷🏻‍♂️Registro Cliente</button>
+      <button onclick="mostrarSeccion('proyectos')"> 🔜Mis Proyectos 👷🏻‍♂️  </button>
+      <button onclick="mostrarSeccion('sugerencias')">🧐Sugerencias de Clientes🤨</button>
+      <button onclick="mostrarSeccion('contable')"> 🗃️Contabilidad (Admin)📈</button>
+      <button onclick="abrirListaClientes()">🫂Ver Clientes (Admin)</button>
+      <button onclick="abrirPresupuestoProtegido()">📑 Presupuesto de Materiales (Admin)🗳️</button>
+      <a href="#contacto"style="font-size: 25px;">Contacto</a>
+    </nav>
+  </header>
+
+  <!-- ===================== PRODUCTOS ===================== -->
+  <section id="productos" class="seccion">
+    <h2>Herramientas Disponibles</h2>
+
+    <div class="productos-grid">
+      <!-- Ítem 1 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="1.jpg" alt="DCR025 - 1" data-group="dcr025" onclick="abrirLightboxItem(this)">
+          <img src="2.jpg" alt="DCR025 - 2" data-group="dcr025" onclick="abrirLightboxItem(this)">
+          <img src="3.jpg" alt="DCR025 - 3" data-group="dcr025" onclick="abrirLightboxItem(this)">
+          <img src="4.jpg" alt="DCR025 - 4" data-group="dcr025" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT MAX 20V Cargador de Radio de batería DCR025</p>
+        <p>$25</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT MAX 20V - DCR025', 25)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 2 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="5.jpg" alt="Taladro 20V - 1" data-group="taladro20v" onclick="abrirLightboxItem(this)">
+          <img src="6.jpg" alt="Taladro 20V - 2" data-group="taladro20v" onclick="abrirLightboxItem(this)">
+          <img src="7.jpg" alt="Taladro 20V - 3" data-group="taladro20v" onclick="abrirLightboxItem(this)">
+          <img src="8.jpg" alt="Taladro 20V - 4" data-group="taladro20v" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Taladro 20V</p>
+        <p>$40</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Taladro 20V', 40)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+      <!-- Ítem 3 -->
+      <div class="item">
+        <div class="thumbs">
+          <img src="9.jpg" alt="Esmeril 4.5 - 1" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="10.jpg" alt="Esmeril 4.5 - 2" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="11.jpg" alt="Esmeril 4.5 - 3" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+          <img src="12.jpg" alt="Esmeril 4.5 - 4" data-group="esmeril45" onclick="abrirLightboxItem(this)">
+        </div>
+        <p>DEWALT Esmeril 4-1/2"</p>
+        <p>$35</p>
+        <button class="btn" onclick="agregarCarrito('DEWALT Esmeril 4.5', 35)">Agregar al carrito</button>
+      </div>
+
+     
+    </div>
+  </section>
+
+  <!-- Lightbox general (PRODUCTOS) -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <button class="close" aria-label="Cerrar" onclick="closeLightbox(event)">&times;</button>
+    <img class="lightbox-content" id="lightbox-img" alt="">
+    <button class="prev" aria-label="Anterior" onclick="changeSlideItem(event,-1)">&#10094;</button>
+    <button class="next" aria-label="Siguiente" onclick="changeSlideItem(event,1)">&#10095;</button>
+  </div>
+
+  <!-- ===================== CARRITO ===================== -->
+  <section id="carrito" class="seccion" style="display:none;">
+    <h2>Carrito de Compras</h2>
+    <ul id="listaCarrito" class="listado"></ul>
+    <p><strong>Total: $<span id="total">0.00</span></strong></p>
+
+    <h3>Método de Pago</h3>
+    <select id="metodoPago" onchange="mostrarQR()">
+      <option value="">-- Seleccionar --</option>
+      <option value="efectivo">Efectivo</option>
+      <option value="zelle">Zelle</option>
+    </select>
+
+    <div id="qrPago" style="display:none; margin-top:20px;">
+      <h4>Escanee para pagar con Zelle:</h4>
+      <img src="imagenes/qr-zelle.png" alt="QR Zelle" width="200">
+      <p><strong>Email asociado:</strong> tuemail@zelle.com</p>
+    </div>
+
+    <button class="btn" onclick="generarRecibo()">Realizar Pago</button>
+
+    <div id="recibo" class="recibo" style="display:none;"></div>
+  </section>
+
+  <!-- ===================== PROYECTOS ===================== -->
+  <section id="proyectos" class="seccion" style="display:none;">
+    <h2>Proyectos</h2>
+
+    <!-- Proyecto 2025 -->
+    <div class="proyecto">
+      <h3>Proyecto 2025</h3>
+      <div class="galeria">
+        <div class="img-container">
+          <img src="18.jpg" alt="Proyecto 2025 - Imagen 1" onclick="openLightbox('2025',0)">
+          <div class="overlay">Ver Imagen</div>
+        </div>
+        <div class="img-container">
+          <img src="16.jpg" alt="Proyecto 2025 - Imagen 2" onclick="openLightbox('2025',1)">
+          <div class="overlay">Ver Imagen</div>
+        </div>
+        <div class="img-container">
+          <img src="17.jpg" alt="Proyecto 2025 - Imagen 3" onclick="openLightbox('2025',2)">
+          <div class="overlay">Ver Imagen</div>
+        </div>
+      </div>
+
+      <!-- Lightbox exclusivo para 2025 -->
+      <div id="lightbox-2025" class="lightbox" aria-hidden="true">
+        <button class="close" aria-label="Cerrar" onclick="closeLightboxProyecto(event,'2025')">&times;</button>
+        <img class="lightbox-content" id="lightbox-img-2025" alt="">
+        <button class="prev" aria-label="Anterior" onclick="changeSlideProyecto(event,'2025',-1)">&#10094;</button>
+        <button class="next" aria-label="Siguiente" onclick="changeSlideProyecto(event,'2025',1)">&#10095;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONTABLE ===================== -->
+  <section id="contable" class="seccion" style="display:none;">
+    <h2>Panel Contable</h2>
+    <div id="loginContable">
+      <p>Introduce la contraseña para acceder:</p>
+      <input type="password" id="passwordContable" placeholder="Contraseña">
+      <button class="btn" onclick="accederContable()">Ingresar</button>
+    </div>
+
+    <div id="panelContable" style="display:none;">
+      <h3>Registro de Ventas</h3>
+      <table class="tabla-simple">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody id="tablaVentas"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================
+       🔹 Sección Presupuesto Materiales
+  ============================= -->
+<section id="presupuesto" class="seccion" style="display:none;">
+  <div class="presupuesto-card">
+    <h2>📑 Presupuesto de Materiales</h2>
+
+    <!-- Datos del proyecto -->
+    <div class="form-presupuesto">
+      <input type="text" id="presCliente" placeholder="👤 Nombre del Cliente">
+      <input type="text" id="presProyecto" placeholder="🏗️ Nombre del Proyecto">
+    </div>
+
+    <!-- Botón agregar material -->
+    <div class="acciones-presupuesto">
+      <button class="btn-agregar" onclick="agregarMaterial()">➕ Agregar Material</button>
+      <button class="btn-imprimir" onclick="imprimirPresupuesto()">🖨️ Imprimir Presupuesto</button>
+    
+    </div>
+
+    <!-- Tabla de materiales -->
+    <div class="tabla-wrapper">
+      <table id="tablaPresupuesto" class="tabla-presupuesto">
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Subtotal</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" style="text-align:right;"><strong>Total:</strong></td>
+            <td id="totalPresupuesto">$0</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</section>
+  <!-- ===================== SUGERENCIAS ===================== -->
+  <section id="sugerencias" class="seccion" style="display:none;">
+    <h2>Sugerencias de Clientes</h2>
+    <form id="formSugerencia" class="grid-form">
+      <label for="sugNombre">Nombre:</label>
+      <input type="    text" id="sugNombre" required>
+      <label for="     sugMensaje">Sugerencia:              -</label>
+      <textarea id="sugMensaje" rows="4" required></textarea>
+      <button type="submit   " class="    btn     ">Enviar</button>
+    </form>
+
+    <h3>Historial</h3>
+    <ul id="listaSugerencias" class="listado"></ul>
+
+
+  </section>
+
+  <!-- ===================== MODALES ===================== -->
+  <!-- Modal de registro de cliente -->
+  <div id="modalRegistro" class="modal" style="display:none;">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="tituloRegistro">
+      <h2 id="tituloRegistro">Registro de Cliente</h2>
+      <form id="formCliente" class="grid-form">
+        <label>Nombre:</label><input type="text" id="nombreCliente" required>
+        <label>Empresa:</label><input type="text" id="empresaCliente">
+        <label>Email:</label><input type="email" id="emailCliente">
+        <label>Teléfono:</label><input type="text" id="telefonoCliente">
+        <div class="modal-actions">
+          <button type="submit" class="btn">Guardar</button>
+          <button type="button" class="btn-outline" onclick="cerrarRegistroCliente()">Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de lista de clientes (solo admin) -->
+  <div id="modalClientes" class="modal" style="display:none;">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="tituloClientes">
+      <h2 id="tituloClientes">Clientes Registrados</h2>
+      <ul id="listaClientes" class="listado"></ul>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarListaClientes()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+<section id="clientes" class="seccion" style="display:none;">
+  <h2>Clientes Registrados</h2>
+
+  <!-- Formulario de registro -->
+  <form id="formCliente">
+    <input type="text" id="nombreCliente" placeholder="Nombre completo" required>
+    <input type="email" id="emailCliente" placeholder="Correo electrónico" required>
+    <input type="text" id="telefonoCliente" placeholder="Teléfono">
+    <button type="submit">Registrar Cliente</button>
+  </form>
+
+  <!-- Tabla de clientes -->
+  <table border="1" width="100%" id="tablaClientes" style="margin-top:20px;">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Teléfono</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+  <script src="script.js"></script>
+
+  <script>
+  const ADMIN_PASS = "contable"; // 🔑 contraseña única para admin
+
+  function abrirContabilidadProtegida() {
+    const pass = prompt("Ingrese la contraseña para acceder a Contabilidad:");
+    if (pass === ADMIN_PASS) {
+      mostrarSeccion('contable'); 
+    } else {
+      alert("Contraseña incorrecta");
+    }
+  }
+
+  function abrirPresupuestoProtegido() {
+    const pass = prompt("Ingrese la contraseña para acceder al Presupuesto:");
+    if (pass === ADMIN_PASS) {
+      mostrarSeccion('presupuesto'); 
+    } else {
+      alert("Contraseña incorrecta");
+    }
+  }
+
+
+
+</script>
+<section id=contacto">
+                <h2>    Contacto</h2>
+            <p> - Para más información, envíanos un correo a: <a href="mailto:info@tiendaherramientas.com">kestradam@icloud.com </a>o 513-319-0469</p>
+            <p>- O llamanos de lunes a viernes en los horarios: <a> </a></p>
+            <p>- 9:00 AM a 5:00 PM <a> </a></p>          
+          </section>
+
+ <footer>
+        <p>- &copy; 2023 Tienda de Herramientas. Todos los derechos reservados.</p>
+    </footer>
+    <script>
+// ======= Manejo de Sugerencias =======
+document.getElementById("formSugerencia").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const nombre = document.getElementById("sugNombre").value.trim();
+  const mensaje = document.getElementById("sugMensaje").value.trim();
+
+  if (!nombre || !mensaje) return;
+
+  const nueva = {
+    nombre,
+    mensaje,
+    fecha: new Date().toLocaleString()
+  };
+
+  let s = JSON.parse(localStorage.getItem("sugerencias") || "[]");
+  s.push(nueva);
+  localStorage.setItem("sugerencias", JSON.stringify(s));
+
+  this.reset();
+  cargarSugerencias();
+});
+
+function cargarSugerencias() {
+  const s = JSON.parse(localStorage.getItem("sugerencias") || "[]");
+  const ul = document.getElementById("listaSugerencias");
+  ul.innerHTML = "";
+
+  s.forEach((it, index) => {
+    const li = document.createElement("li");
+    li.classList.add("sugerencia-item");
+    li.innerHTML = `
+       <div class="sugerencia-contenido">
+    <span class="sug-nombre"><strong>${it.nombre}</strong></span>
+    <span class="sug-mensaje">${it.mensaje}</span>
+    <span class="muted">(${it.fecha})</span>
+    
+  </div>
+  <button class="btn-eliminar" onclick="eliminarSugerencia(${index})">❌</button>
+`;
+    ul.appendChild(li);
+  });
+}
+
+function eliminarSugerencia(index) {
+  let s = JSON.parse(localStorage.getItem("sugerencias") || "[----          ]");
+  if (confirm("¿Seguro que deseas eliminar esta sugerencia?")) {
+    s.splice(index, 1);
+    localStorage.setItem("sugerencias", JSON.stringify(s));
+    cargarSugerencias();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", cargarSugerencias);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,349 @@
+:root{
+  --bg:#1d1111;
+  --card:#171a21;
+  --muted:#9aa4b2;
+  --text:#e5e7eb;
+  --accent:#22c55e;
+  --danger:#ef4444;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,Segoe UI,Roboto,Verdana, Geneva, Tahoma,;
+  background:var(--bg); color:var(--text);
+}
+
+header{
+  text-align:center; padding:16px 12px 8px;
+}
+h1{margin:6px 0 4px; font-size:70px}
+h2{margin:8px 0 16px; font-weight:600}
+
+nav{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:8px auto 0;
+}
+nav button{
+  background:#1e293b; color:var(--text); border:1px solid #263244;
+  padding:8px 12px; border-radius:10px; cursor:pointer;
+}
+nav button:hover{border-color:#4389f8}
+
+#galeria-titulo .slider{
+  position:relative; width:100%; height:160px; overflow:hidden; border-radius:12px;
+}
+.slide{
+  position:absolute; inset:0; object-fit:cover; width:100%; height:95%;
+  opacity:0; transition:opacity .1s ease;
+}
+.slide.active{opacity:1}
+
+/* Secciones */
+.seccion{
+  max-width:1100px; margin:16px auto; padding:16px; background:var(--card);
+  border:1px solid #232838; border-radius:16px;
+}
+
+/* Productos */
+.productos-grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+}
+.item{
+  background:#11141a; border:1px solid #232838; border-radius:14px; padding:10px;
+}
+.thumbs{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px;
+}
+.thumbs img{
+  width:100%; height:70px; object-fit:cover; border-radius:8px; cursor:pointer;
+  border:1px solid #232838;
+}
+.item p{margin:6px 0}
+.btn{
+  background:var(--accent); border:none; color:#0b111c; padding:8px 12px; cursor:pointer;
+  border-radius:10px; font-weight:600;
+}
+.btn:hover{filter:brightness(1.05)}
+.btn-sm{padding:4px 8px; border-radius:8px}
+.btn-danger{background:var(--danger); color:#fff; border:none}
+
+/* Listas */
+.listado{list-style:none; padding:0; margin:0}
+.listado li{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px; border-bottom:1px solid #232838;
+}
+
+/* Lightbox genérico */
+.lightbox{
+  position:fixed; inset:0; display:none; place-items:center; z-index:1000;
+  background:rgba(0,0,0,.8);
+}
+.lightbox[aria-hidden="false"]{display:grid}
+.lightbox-content{
+  max-width:min(90vw,1100px); max-height:80vh; border-radius:10px; border:1px solid #2a2f3f;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);
+}
+.lightbox .close,.lightbox .prev,.lightbox .next{
+  position:absolute; background:rgba(0,0,0,.55); border:1px solid #343a50; color:#fff;
+  width:42px; height:42px; border-radius:999px; display:grid; place-items:center;
+  cursor:pointer; font-size:22px; user-select:none;
+}
+.lightbox .close{top:18px; right:18px}
+.lightbox .prev{left:24px}
+.lightbox .next{right:24px}
+
+/* Proyectos */
+.galeria{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;
+}
+.img-container{position:relative; overflow:hidden; border-radius:10px; border:1px solid #232838}
+.img-container img{width:100%; height:180px; object-fit:cover; display:block}
+.overlay{
+  position:absolute; inset:auto 0 0 0; background:linear-gradient(transparent,rgba(0,0,0,.8));
+  color:#fff; text-align:center; padding:8px; font-size:14px;
+}
+
+/* Modales */
+.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; z-index:1100;
+  place-items:center; padding:16px;
+}
+.modal .modal-content{
+  background:#0f1420; padding:16px; border-radius:12px; width:min(520px,95vw);
+  border:1px solid #2a2f3f;
+}
+.grid-form{display:grid; gap:8px}
+.grid-form input, .grid-form textarea, .grid-form select{
+  background:#0c111a; border:1px solid #2a2f3f; color:var(--text);
+  border-radius:8px; padding:8px;
+}
+.modal-actions{display:flex; gap:8px; justify-content:flex-end}
+.btn-outline{
+  background:transparent; border:1px solid #3bf6a8; color:#cfe1ff; padding:8px 12px; border-radius:10px;
+}
+
+/* Recibo */
+.recibo{
+  background:#0f1420; border:1px dashed #2a2f3f; padding:12px; border-radius:10px; margin-top:12px;
+}
+
+/* Muted */
+.muted{color:var(--muted); font-size:12px}
+
+/* presupuesto de materiales */
+.form-presupuesto {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.form-presupuesto input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #171923;
+  color: white;
+}
+
+.tabla-presupuesto {
+  width: 100%;
+  margin-top: 15px;
+  border-collapse: collapse;
+}
+.tabla-presupuesto th, .tabla-presupuesto td {
+  border: 1px solid #444;
+  padding: 8px;
+  text-align: center;
+}
+.tabla-presupuesto th {
+  background: #222;
+}
+
+/* 🔹 Tarjeta principal */
+.presupuesto-card {
+  background: var(--card);
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  max-width: 900px;
+  margin: auto;
+}
+
+/* 🔹 Título */
+.presupuesto-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--accent);
+}
+
+/* 🔹 Formulario de datos */
+.form-presupuesto {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.form-presupuesto input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid #333;
+  background: #1f2230;
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: 0.2s;
+}
+.form-presupuesto input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 5px var(--accent);
+}
+
+/* 🔹 Botones */
+.acciones-presupuesto {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+.acciones-presupuesto button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+.btn-agregar {
+  background: var(--accent-2);
+  color: #fff;
+}
+.btn-agregar:hover {
+  background: #1faa4a;
+  transform: translateY(-2px);
+}
+.btn-imprimir {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-imprimir:hover {
+  background: #2b416e;
+  transform: translateY(-2px);
+}
+
+/* 🔹 Tabla */
+.tabla-wrapper {
+  overflow-x: auto;
+}
+.tabla-presupuesto {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1f2230;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tabla-presupuesto th,
+.tabla-presupuesto td {
+  padding: 12px;
+  text-align: center;
+}
+.tabla-presupuesto th {
+  background: #292d41;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+.tabla-presupuesto td {
+  border-top: 1px solid #2c2828;
+  font-size: 0.9rem;
+}
+.tabla-presupuesto input {
+  width: 100%;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #11141c;
+  color: var(--text);
+}
+.tabla-presupuesto tfoot td {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--accent-2);
+  border-top: 2px solid var(--accent-2);
+}
+
+/* 🔹 Botón eliminar fila */
+.tabla-presupuesto button {
+  background: var(--danger);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #fff;
+  transition: 0.2s;
+}
+.tabla-presupuesto button:hover {
+  background: #c93030;
+  transform: scale(1.05);
+   border-radius: 7px;
+   border: none;
+   color: #fff;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui,Segoe UI,Roboto,Verdana, Geneva, Tahoma,;
+    background: var(--bg);
+    color: #e3e7ec;
+}
+#listaSugerencias {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sugerencia-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card, #222);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  box-shadow: var(--shadow, 0 2px 6px rgba(0,0,0,0.3));
+}
+
+.sugerencia-item div {
+  flex: 1;
+}
+
+.btn-eliminar {
+  background: transparent;
+  border: none;
+  color: var(--danger, red);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-eliminar:hover {
+  color: #ff4d4d;
+}
+
+.sugerencia-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* espacio entre nombre, mensaje y fecha */
+}
+
+.sug-nombre {
+  margin: 0;
+  font-weight: bold;
+  color: var(--accent, #4f8cff);
+}
+
+.sug-mensaje {
+  margin: 0;
+  color: var(--text, #e6e6e6);
+  line-height: 1.4;
+}
