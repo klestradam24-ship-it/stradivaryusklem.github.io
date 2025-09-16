@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <base href="./">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stradivaryus Tools</title>
+  <title>Stradivaryus Tools — Next</title>
 
   <!-- Fuentes + estilos -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#0f1420">
 
-  <!-- SEO/OG básico (refuerzo; app.js inyecta más) -->
+  <!-- SEO/OG básico (app.js inyecta más si falta) -->
   <meta name="description" content="Herramientas, proyectos y servicios en Cincinnati. Ventas, instalación y presupuestos al instante.">
   <meta property="og:title" content="Stradivaryus Tools" />
   <meta property="og:description" content="Catálogo de herramientas y proyectos. Presupuestos en PDF. Contacto rápido." />
@@ -23,13 +23,16 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="./" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
 
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- jsPDF/AutoTable -->
+  <!-- jsPDF/AutoTable (PDF presupuestos) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" defer></script>
+
+  <!-- DOMPurify (sanitizado) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
 <body>
   <!-- Fondo animado -->
@@ -38,7 +41,7 @@
   <!-- AppBar -->
   <header class="appbar">
     <div class="appbar-left">
-      <img src="logo.png" class="logo" alt="Stradivaryus"/>
+      <img src="logoklem.png" class="logo" alt="Stradivaryus"/>
       <div>
         <h1>Stradivaryus Tools</h1>
         <p class="tag">El Rincón de tus Herramientas</p>
@@ -84,7 +87,6 @@
           <strong>Total $<span id="totTxt">0.00</span></strong>
         </div>
       </div>
-
       <div class="card">
         <h3>Pago</h3>
         <div class="row wrap">
@@ -97,13 +99,11 @@
           <input id="montoEfectivo" type="number" class="input hidden" min="0" step="0.01" placeholder="Monto entregado" aria-label="Monto entregado en efectivo">
           <button id="btnPagar" class="btn primary">Pagar</button>
         </div>
-
         <div id="qrBox" class="qr hidden">
           <img src="qr-zelle.png" alt="QR Zelle">
           <div class="muted">Email Zelle: tuemail@zelle.com</div>
         </div>
       </div>
-
       <div id="reciboBox" class="card hidden" aria-live="polite"></div>
     </section>
 
@@ -121,7 +121,6 @@
         <p>Horario: L–V · 9:00 AM – 5:00 PM</p>
         <p><strong>Email:</strong> <a href="mailto:info@stradivaryus.com">info@stradivaryus.com</a></p>
         <p><a href="mailto:kestradam@icloud.com">kestradam26@icloud.com</a></p>
-
         <div class="map-wrap" style="height:280px; border-radius:14px; overflow:hidden; border:1px solid var(--line);">
           <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d198858.73617515213!2d-84.69539332078124!3d39.13602445936173!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8841b277f3d6bdf7%3A0x2a0d7b5a2d0f0db8!2sCincinnati%2C%20OH!5e0!3m2!1ses!2sus!4v1690000000000"
                   width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy"
@@ -138,7 +137,6 @@
           Contenido informativo basado en prácticas habituales del Ohio Revised Code (ORC).
           <strong>No constituye asesoría legal</strong>. Consulta a tu abogado para adaptar a tu operación.
         </p>
-
         <details open>
           <summary><strong>Términos y Condiciones</strong></summary>
           <div class="legal">
@@ -152,7 +150,6 @@
             </ul>
           </div>
         </details>
-
         <details>
           <summary><strong>Privacidad</strong></summary>
           <div class="legal">
@@ -164,7 +161,6 @@
             </ul>
           </div>
         </details>
-
         <details>
           <summary><strong>Devoluciones</strong></summary>
           <div class="legal">
@@ -174,22 +170,18 @@
             </ul>
           </div>
         </details>
-
         <details>
           <summary><strong>Cookies</strong></summary>
           <div class="legal"><p>Usamos almacenamiento local para carrito y preferencias. Sin rastreo de terceros.</p></div>
         </details>
-
         <details>
           <summary><strong>DMCA</strong></summary>
           <div class="legal"><p>Avisos a <a href="mailto:dmca@stradivaryus.com">dmca@stradivaryus.com</a>.</p></div>
         </details>
-
         <details>
           <summary><strong>Accesibilidad (ADA)</strong></summary>
           <div class="legal"><p>Si encuentras barreras, contáctanos en <a href="mailto:access@stradivaryus.com">access@stradivaryus.com</a>.</p></div>
         </details>
-
         <p class="muted">Vigencia: <span id="legalDate"></span> · Sede: Cincinnati, Ohio</p>
       </div>
     </section>
@@ -202,7 +194,7 @@
       <div id="adminGate" class="card">
         <div class="row">
           <label for="adminPass" class="sr-only">Contraseña</label>
-          <input id="adminPass" type="password" class="input" placeholder="Contraseña (klem)">
+          <input id="adminPass" type="password" class="input" placeholder="Contraseña">
           <button id="adminEnter" class="btn primary">Ingresar</button>
         </div>
       </div>
@@ -251,7 +243,7 @@
           <div id="gridProyectosAdmin" class="grid cards admin"></div>
         </div>
 
-        <!-- Presupuestos (SOLO ADMIN) -->
+        <!-- Presupuestos (ADMIN simple) -->
         <div class="card">
           <div class="card-head">
             <h3>Presupuestos (Admin)</h3>
@@ -265,12 +257,10 @@
               <button class="btn primary" id="presPDF">📄 PDF</button>
             </div>
           </div>
-
           <div class="row wrap">
             <input id="presCliente" class="input" placeholder="👤 Cliente">
             <input id="presProyecto" class="input" placeholder="🏗️ Proyecto">
           </div>
-
           <div class="table-wrap">
             <table id="presTable">
               <thead><tr><th>Material</th><th>Cant</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
@@ -302,7 +292,10 @@
 
         <!-- Contable -->
         <div class="card">
-          <div class="card-head"><h3>Ventas</h3><div class="row"><button id="clearVentas" class="btn danger">Limpiar</button></div></div>
+          <div class="card-head">
+            <h3>Ventas</h3>
+            <div class="row"><button id="clearVentas" class="btn danger">Limpiar</button></div>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Fecha</th><th>#</th><th>Cliente</th><th>Productos</th><th>Sub</th><th>Imp</th><th>Total</th><th>Método</th><th></th><th></th></tr></thead>
@@ -312,7 +305,10 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>Clientes (resumen compras)</h3><button id="clearClientes" class="btn danger">Limpiar</button></div>
+          <div class="card-head">
+            <h3>Clientes (resumen compras)</h3>
+            <button id="clearClientes" class="btn danger">Limpiar</button>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Cliente</th><th>Compras</th><th>Total</th><th>Última</th><th></th></tr></thead>
@@ -333,7 +329,10 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>Presupuestos Generados</h3><button id="clearPres" class="btn danger">Limpiar</button></div>
+          <div class="card-head">
+            <h3>Presupuestos Generados</h3>
+            <button id="clearPres" class="btn danger">Limpiar</button>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Fecha</th><th>Cliente</th><th>Proyecto</th><th>Monto</th><th></th><th></th></tr></thead>
@@ -341,7 +340,6 @@
             </table>
           </div>
         </div>
-
       </div>
     </section>
   </main>
@@ -364,7 +362,6 @@
     <div class="lb-inner">
       <button class="x" id="lbClose" aria-label="Cerrar">✕</button>
       <img id="lbImg" alt="Imagen seleccionada"/>
-      <!-- Tip para modo censor-tap -->
       <div class="lb-tip">Toca para ver</div>
       <div class="tools">
         <button id="zIn" class="chip">Zoom +</button>
@@ -392,14 +389,11 @@
 
   <script src="app.js" defer></script>
   <script>
-    // Año en footer
-    document.addEventListener('DOMContentLoaded', ()=>{
+    // Año en footer (fallback rápido)
+    document.addEventListener('DOMContentLoaded', ()=> {
       const y=document.getElementById('yy');
       if(y) y.textContent=new Date().getFullYear();
     });
   </script>
 </body>
 </html>
-
-
-
