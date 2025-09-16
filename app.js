@@ -111,7 +111,7 @@ async function init(){
   }catch{}
 
   /* === NUEVO: Asistente  === */
-  /* ===await ensureAdminPassword(); === */
+  await ensureAdminPassword();
 
   // SW
   if('serviceWorker' in navigator){
