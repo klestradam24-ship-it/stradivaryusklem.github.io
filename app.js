@@ -101,6 +101,18 @@ async function init(){
     }
   } catch{}
 
+  /* === NUEVO: reset opcional desde URL (?setup=1) para forzar asistente === */
+  try{
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('setup') === '1') {
+      LS.set('adminHash', null);                    // borra clave (primer uso)
+      sessionStorage.removeItem('st_admin_ok');     // cierra sesión
+    }
+  }catch{}
+
+  /* === NUEVO: Asistente de primera contraseña si no existe === */
+  await ensureAdminPassword();
+
   // SW
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
@@ -110,7 +122,7 @@ async function init(){
   setupTabbar();
   setupAdmin();
   initHero();
-  initProductos();   // ⇐ Productos ahora con galería “tipo proyectos”
+  initProductos();   // ⇐ Productos con galería
   initCarrito();
   initProyectos();
   initPresupuestoAdmin();
@@ -361,7 +373,7 @@ function enableThumbDnD(container){
   });
 }
 
-/* ===== Productos (Ahora con formulario tipo “Proyectos”) ===== */
+/* ===== Productos ===== */
 function initProductos(){
   if(!ST.productos.length){
     ST.productos = [
@@ -372,24 +384,24 @@ function initProductos(){
   } else {
     ST.productos = ST.productos.map(p=>({vendido:false, imgs:[], ...p}));
   }
-  LS.set('productos', ST.productos);
+   LS.set('productos', ST.productos);
 
   renderProductosCliente();
 
+  // Botones admin de productos
   $('#addProducto')?.addEventListener('click', openFormProducto);
-
-  // Import masivo a productos — ahora comprimido + toasts
   $('#importProductos')?.addEventListener('change', async (e)=>{
     const files = e.target.files || [];
-    if(!files.length){ toast('No seleccionaste imágenes'); return; }
-    toast(`${files.length} imagen(es) seleccionada(s). Subiendo…`);
+    if(!files.length) return;
     const imgs = await filesToDataURLCompressed(files, 1400, 0.82);
     imgs.forEach((src,i)=> ST.productos.push({id:u(), nombre:`Imagen ${i+1}`, precio:Math.round(Math.random()*90+10), imgs:[src], vendido:false}));
     LS.set('productos', ST.productos);
     renderProductosCliente(); renderProductosAdmin();
     toast(`Se añadieron ${imgs.length} imagen(es)`);
-    e.target.value = '';
+    e.target.value='';
   });
+
+  renderProductosAdmin();
 }
 
 function cardProdCliente(p){
@@ -433,22 +445,6 @@ function renderProductosCliente(){
   });
 }
 
-function renderProductosAdmin(){
-  const grid=$('#gridProductosAdmin'); if(!grid) return;
-  grid.innerHTML = ST.productos.map(p=>cardProdAdmin(p)).join('');
-  grid.querySelectorAll('img').forEach(img=> safeImg(img));
-  grid.querySelectorAll('[data-addimg]').forEach(inp=> inp.onchange = async (e)=>{
-    const imgs = await filesToDataURLCompressed(e.target.files, 1400, 0.82);
-    addImgsProducto(inp.dataset.addimg, imgs);
-    toast('Imágenes añadidas');
-    e.target.value='';
-  });
-  grid.querySelectorAll('[data-delimg]').forEach(btn=> btn.onclick = ()=> { delImgProducto(btn.dataset.delimg, Number(btn.dataset.idx)); toast('Imagen eliminada'); });
-  grid.querySelectorAll('[data-delprod]').forEach(btn=> btn.onclick = ()=> { delProducto(btn.dataset.delprod); toast('Producto eliminado'); });
-  grid.querySelectorAll('[data-view]').forEach(btn=> btn.onclick = ()=> openLB(ST.productos.find(x=>x.id===btn.dataset.view)?.imgs||[],0));
-  grid.querySelectorAll('[data-togglevend]').forEach(btn=> btn.onclick = ()=> { toggleVendido(btn.dataset.togglevend); toast('Estado de venta actualizado'); });
-}
-
 function cardProdAdmin(p){
   const thumbs = (p.imgs||[]).map((src,ix)=>`
     <div class="thumb">
@@ -466,7 +462,7 @@ function cardProdAdmin(p){
     </div>
     <div class="thumbs">${thumbs}</div>
     <div class="row wrap" style="margin-top:8px">
-      <label class="btn ghost">➕ Añadir desde teléfono
+      <label class="btn ghost">📥 Añadir imágenes
         <input type="file" accept="image/*" multiple hidden data-addimg="${p.id}">
       </label>
       <button class="btn danger" data-delprod="${p.id}">Eliminar producto</button>
@@ -474,9 +470,28 @@ function cardProdAdmin(p){
   </article>`;
 }
 
-function toggleVendido(id){ const p = ST.productos.find(x=>x.id===id); if(!p) return; p.vendido = !p.vendido; LS.set('productos', ST.productos); renderProductosCliente(); renderProductosAdmin(); }
+function renderProductosAdmin(){
+  const grid=$('#gridProductosAdmin'); if(!grid) return;
+  grid.innerHTML = ST.productos.map(p=>cardProdAdmin(p)).join('');
+  grid.querySelectorAll('img').forEach(img=> safeImg(img));
+  grid.querySelectorAll('[data-addimg]').forEach(inp=> inp.onchange = async (e)=>{
+    const imgs = await filesToDataURLCompressed(e.target.files, 1400, 0.82);
+    addImgsProducto(inp.dataset.addimg, imgs);
+    toast('Imágenes añadidas');
+    e.target.value='';
+  });
+  grid.querySelectorAll('[data-delimg]').forEach(btn=> btn.onclick = ()=> { delImgProducto(btn.dataset.delimg, Number(btn.dataset.idx)); toast('Imagen eliminada'); });
+  grid.querySelectorAll('[data-delprod]').forEach(btn=> btn.onclick = ()=> { delProducto(btn.dataset.delprod); toast('Producto eliminado'); });
+  grid.querySelectorAll('[data-view]').forEach(btn=> btn.onclick = ()=> openLB(ST.productos.find(x=>x.id===btn.dataset.view)?.imgs||[],0));
+  grid.querySelectorAll('[data-togglevend]').forEach(btn=> btn.onclick = ()=> { toggleVendido(btn.dataset.togglevend); toast('Estado de venta actualizado'); });
+}
 
-// === NUEVO: Formulario Producto con contador + preview miniaturas (como Proyectos) ===
+function toggleVendido(id){
+  const p=ST.productos.find(x=>x.id===id); if(!p) return;
+  p.vendido=!p.vendido; LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+}
+
 function openFormProducto(){
   openModal('Nuevo producto', `
     <form id="fProd" class="form">
@@ -499,19 +514,17 @@ function openFormProducto(){
     </form>
   `);
 
-  const inp = $('#pImgs'); const cnt = $('#pCount'); const prev = $('#pPrev');
-
+  const inp=$('#pImgs'), cnt=$('#pCount'), prev=$('#pPrev');
   inp.onchange = async (e)=>{
-    const files = e.target.files || [];
-    cnt.textContent = `${files.length} seleccionadas`;
-    prev.innerHTML = '';
+    const files=e.target.files||[];
+    cnt.textContent=`${files.length} seleccionadas`;
+    prev.innerHTML='';
     if(!files.length) return;
-    const datas = await filesToDataURL(files); // preview rápida (no comprimida)
+    const datas = await filesToDataURL(files);
     datas.forEach((src,ix)=>{
-      const div = document.createElement('div');
-      div.className='thumb';
-      div.innerHTML = `<img loading="lazy" src="${src}" alt="img ${ix+1}">`;
-      prev.appendChild(div);
+      const d=document.createElement('div'); d.className='thumb';
+      d.innerHTML = `<img loading="lazy" src="${src}" alt="img ${ix+1}">`;
+      prev.appendChild(d);
     });
   };
 
@@ -519,8 +532,7 @@ function openFormProducto(){
     e.preventDefault();
     const nombre=$('#pNombre').value.trim();
     const precio=Number($('#pPrecio').value||0);
-    const rawFiles = $('#pImgs').files;
-    const imgs = await filesToDataURLCompressed(rawFiles, 1400, 0.82); // comprimidas para guardar
+    const imgs = await filesToDataURLCompressed($('#pImgs').files, 1400, 0.82);
     ST.productos.push({id:u(), nombre, precio, imgs, vendido:false});
     LS.set('productos', ST.productos);
     closeModal();
@@ -530,21 +542,40 @@ function openFormProducto(){
   };
 }
 
-function addImgsProducto(id, imgs){ const p = ST.productos.find(x=>x.id===id); if(!p) return; p.imgs = [...(p.imgs||[]), ...imgs]; LS.set('productos', ST.productos); renderProductosCliente(); renderProductosAdmin(); }
-function delImgProducto(id, idx){ const p = ST.productos.find(x=>x.id===id); if(!p) return; p.imgs.splice(idx,1); LS.set('productos', ST.productos); renderProductosCliente(); renderProductosAdmin(); }
-function delProducto(id){ if(!confirm('¿Eliminar producto completo?')) return; ST.productos = ST.productos.filter(x=>x.id!==id); LS.set('productos', ST.productos); renderProductosCliente(); renderProductosAdmin(); }
+function addImgsProducto(id, imgs){
+  const p = ST.productos.find(x=>x.id===id); if(!p) return;
+  p.imgs = [...(p.imgs||[]), ...imgs];
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+}
+function delImgProducto(id, idx){
+  const p = ST.productos.find(x=>x.id===id); if(!p) return;
+  p.imgs.splice(idx,1);
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+}
+function delProducto(id){
+  if(!confirm('¿Eliminar producto completo?')) return;
+  ST.productos = ST.productos.filter(x=>x.id!==id);
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+}
 
 /* ===== Proyectos ===== */
 function initProyectos(){
-  if(!ST.proyectos.length){ ST.proyectos = [{id:u(), titulo:'Deck 19×22', desc:'Composite', imgs:[]}]; LS.set('proyectos', ST.proyectos); }
+  if(!ST.proyectos.length){
+    ST.proyectos = [{id:u(), titulo:'Deck 19×22', desc:'Composite', imgs:[]}];
+    LS.set('proyectos', ST.proyectos);
+  }
   renderProyectosCliente();
-  $('#addProyecto')?.addEventListener('click', openFormProyecto);
+  renderProyectosAdmin();
 
+  $('#addProyecto')?.addEventListener('click', openFormProyecto);
   $('#importProyectos')?.addEventListener('change', async (e)=>{
-    const files = e.target.files || []; if(!files.length){ toast('No seleccionaste imágenes'); return; }
-    toast(`${files.length} imagen(es) seleccionada(s). Subiendo…`);
+    const files=e.target.files||[];
+    if(!files.length) return;
     const imgs = await filesToDataURLCompressed(files, 1400, 0.82);
-    ST.proyectos.push({id:u(), titulo:'Proyecto nuevo', desc:'', imgs});
+    ST.proyectos.push({id:u(), titulo:'Proyecto', desc:'', imgs});
     LS.set('proyectos', ST.proyectos);
     renderProyectosCliente(); renderProyectosAdmin();
     toast(`Se añadieron ${imgs.length} imagen(es)`);
@@ -573,26 +604,11 @@ function renderProyectosCliente(){
   const g=$('#gridProyectos'); if(!g) return;
   g.innerHTML = ST.proyectos.map(p=>cardProyectoCliente(p)).join('');
   g.querySelectorAll('img').forEach(img=> safeImg(img));
-  g.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ openLB( ST.proyectos.find(x=>x.id===b.dataset.view)?.imgs || [], 0 ); track('open_lightbox', {context:'proyecto', item_id:b.dataset.view}); });
-}
-
-function renderProyectosAdmin(){
-  const grid=$('#gridProyectosAdmin'); if(!grid) return;
-  grid.innerHTML = ST.proyectos.map(p=>cardProyectoAdmin(p)).join('');
-  grid.querySelectorAll('img').forEach(img=> safeImg(img));
-  grid.querySelectorAll('[data-addimgp]').forEach(inp=>{
-    const pid = inp.dataset.addimgp;
-    inp.onchange = async (e)=>{
-      const files = e.target.files || [];
-      if(!files.length){ toast('No seleccionaste imágenes'); return; }
-      toast(`${files.length} imagen(es) seleccionada(s). Subiendo…`);
-      const imgs = await filesToDataURLCompressed(files, 1400, 0.82);
-      addImgsProyecto(pid, imgs); toast(`Se añadieron ${imgs.length} imagen(es)`); e.target.value = '';
-    };
+  g.querySelectorAll('[data-view]').forEach(b=> b.onclick=()=>{
+    const list = ST.proyectos.find(x=>x.id===b.dataset.view)?.imgs || [];
+    openLB(list, 0);
+    track('open_lightbox', {context:'proyecto', item_id:b.dataset.view});
   });
-  grid.querySelectorAll('[data-delimgp]').forEach(btn=> btn.onclick = ()=> { delImgProyecto(btn.dataset.delimgp, Number(btn.dataset.idx)); toast('Imagen eliminada'); });
-  grid.querySelectorAll('[data-delproj]').forEach(btn=> btn.onclick = ()=> { delProyecto(btn.dataset.delproj); toast('Proyecto eliminado'); });
-  grid.querySelectorAll('[data-viewp]').forEach(btn=> btn.onclick = ()=> openLB(ST.proyectos.find(x=>x.id===btn.dataset.viewp)?.imgs||[],0));
 }
 
 function cardProyectoAdmin(p){
@@ -608,13 +624,29 @@ function cardProyectoAdmin(p){
     </div>
     <div class="thumbs">${thumbs}</div>
     <div class="row wrap" style="margin-top:8px;align-items:center;gap:8px">
-      <label class="btn ghost">➕ Añadir desde teléfono
+      <label class="btn ghost">📥 Añadir imágenes
         <input type="file" accept="image/*" multiple hidden data-addimgp="${p.id}">
       </label>
       <span class="muted">${(p.imgs?.length||0)} foto(s)</span>
       <button class="btn danger" data-delproj="${p.id}">Eliminar proyecto</button>
     </div>
   </article>`;
+}
+
+function renderProyectosAdmin(){
+  const grid=$('#gridProyectosAdmin'); if(!grid) return;
+  grid.innerHTML = ST.proyectos.map(p=>cardProyectoAdmin(p)).join('');
+  grid.querySelectorAll('img').forEach(img=> safeImg(img));
+  grid.querySelectorAll('[data-addimgp]').forEach(inp=>{
+    const pid=inp.dataset.addimgp;
+    inp.onchange = async (e)=>{
+      const imgs = await filesToDataURLCompressed(e.target.files, 1400, 0.82);
+      addImgsProyecto(pid, imgs); toast(`Se añadieron ${imgs.length} imagen(es)`); e.target.value='';
+    };
+  });
+  grid.querySelectorAll('[data-delimgp]').forEach(btn=> btn.onclick = ()=> { delImgProyecto(btn.dataset.delimgp, Number(btn.dataset.idx)); toast('Imagen eliminada'); });
+  grid.querySelectorAll('[data-delproj]').forEach(btn=> btn.onclick = ()=> { delProyecto(btn.dataset.delproj); toast('Proyecto eliminado'); });
+  grid.querySelectorAll('[data-viewp]').forEach(btn=> btn.onclick = ()=> openLB(ST.proyectos.find(x=>x.id===btn.dataset.viewp)?.imgs||[],0));
 }
 
 function openFormProyecto(){
@@ -639,18 +671,17 @@ function openFormProyecto(){
     </form>
   `);
 
-  const inp = $('#jImgs'); const cnt = $('#jCount'); const prev = $('#jPrev');
+  const inp=$('#jImgs'), cnt=$('#jCount'), prev=$('#jPrev');
   inp.onchange = async (e)=>{
-    const files = e.target.files || [];
-    cnt.textContent = `${files.length} seleccionadas`;
-    prev.innerHTML = '';
+    const files=e.target.files||[];
+    cnt.textContent=`${files.length} seleccionadas`;
+    prev.innerHTML='';
     if(!files.length) return;
     const datas = await filesToDataURL(files);
     datas.forEach((src,ix)=>{
-      const div = document.createElement('div');
-      div.className = 'thumb';
-      div.innerHTML = `<img loading="lazy" src="${src}" alt="img ${ix+1}">`;
-      prev.appendChild(div);
+      const d=document.createElement('div'); d.className='thumb';
+      d.innerHTML = `<img loading="lazy" src="${src}" alt="img ${ix+1}">`;
+      prev.appendChild(d);
     });
   };
 
@@ -658,20 +689,34 @@ function openFormProyecto(){
     e.preventDefault();
     const titulo=$('#jTitulo').value.trim();
     const desc=$('#jDesc').value.trim();
-    const rawFiles = $('#jImgs').files;
-    const imgs = await filesToDataURLCompressed(rawFiles, 1400, 0.82);
+    const imgs = await filesToDataURLCompressed($('#jImgs').files, 1400, 0.82);
     ST.proyectos.push({id:u(), titulo, desc, imgs});
     LS.set('proyectos', ST.proyectos);
     closeModal();
     renderProyectosCliente(); renderProyectosAdmin();
     toast('Proyecto creado con imágenes');
-    track('create_project', {title: titulo, images: imgs.length});
+    track('create_project', {title:titulo, images:imgs.length});
   };
 }
 
-function addImgsProyecto(id, imgs){ const p = ST.proyectos.find(x=>x.id===id); if(!p) return; p.imgs = [...(p.imgs||[]), ...imgs]; LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
-function delImgProyecto(id, idx){ const p = ST.proyectos.find(x=>x.id===id); if(!p) return; p.imgs.splice(idx,1); LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
-function delProyecto(id){ if(!confirm('¿Eliminar proyecto completo?')) return; ST.proyectos = ST.proyectos.filter(x=>x.id!==id); LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
+function addImgsProyecto(id, imgs){
+  const p = ST.proyectos.find(x=>x.id===id); if(!p) return;
+  p.imgs = [...(p.imgs||[]), ...imgs];
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+}
+function delImgProyecto(id, idx){
+  const p = ST.proyectos.find(x=>x.id===id); if(!p) return;
+  p.imgs.splice(idx,1);
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+}
+function delProyecto(id){
+  if(!confirm('¿Eliminar proyecto completo?')) return;
+  ST.proyectos = ST.proyectos.filter(x=>x.id!==id);
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+}
 
 /* ===== Carrito ===== */
 function initCarrito(){
@@ -770,40 +815,16 @@ function updateTotals(){
   $('#subTxt').textContent=cur(sub); $('#taxRateTxt').textContent=cur(ST.tax); $('#taxTxt').textContent=cur(imp); $('#totTxt').textContent=cur(tot);
 }
 
-// Pago + recibo (igual que tenías, se mantiene)
 async function pagar(){
   if(!ST.carrito.length) return alert('Carrito vacío');
   const cliId=$('#clienteSel').value; const cli=ST.clientes.find(c=>c.id===cliId);
   if(!cli || cli.id==='general' || !cli.telefono){ alert('Para comprar debes registrarte con Nombre y Teléfono.'); return openFormCliente(true); }
   const metodo=$('#metodoPago').value; if(!metodo) return alert('Selecciona método');
   const sub=Number($('#subTxt').textContent), imp=Number($('#taxTxt').textContent), tot=Number($('#totTxt').textContent);
-  let zelleConf = null;
+  let zelleId=null;
   if(metodo==='zelle'){
-    await new Promise((resolve)=>{
-      openModal('Confirmar pago Zelle', `
-        <form id="fZelle" class="form">
-          <div class="row wrap">
-            <label for="zId" class="muted" style="min-width:140px">ID/Referencia *</label>
-            <input class="input" id="zId" placeholder="Ej: A1B2C3..." required>
-          </div>
-          <div class="row wrap">
-            <label class="btn ghost">📎 Comprobante (imagen)
-              <input id="zFile" type="file" accept="image/*" hidden>
-            </label>
-            <span id="zName" class="muted">Ningún archivo</span>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button class="btn" type="button" id="zCancel">Cancelar</button>
-            <button class="btn primary" type="submit">Confirmar</button>
-          </div>
-        </form>
-      `);
-      let proofData = null;
-      $('#zFile').onchange = async (e)=>{ const arr = await filesToDataURLCompressed(e.target.files, 1400, 0.82); proofData = arr[0] || null; $('#zName').textContent = e.target.files?.[0]?.name || 'Ningún archivo'; };
-      $('#fZelle').onsubmit = (ev)=>{ ev.preventDefault(); const id = $('#zId').value.trim(); if(!id){ alert('Ingresa el ID de transacción'); return; } zelleConf = { id, proof: proofData||null }; closeModal(); resolve(); };
-      $('#zCancel').onclick = ()=>{ closeModal(); resolve(); };
-    });
-    if(!zelleConf){ return alert('Pago cancelado'); }
+    zelleId = prompt('Ingresa el ID/Referencia de Zelle');
+    if(!zelleId) return alert('Pago cancelado');
   } else if(metodo==='efectivo'){
     const ent=Number($('#montoEfectivo').value||0); if(ent<tot) return alert('Efectivo insuficiente');
   }
@@ -811,7 +832,7 @@ async function pagar(){
     id:'V'+String(ST.folio).padStart(5,'0'),
     fecha:new Date().toLocaleString(), cliente:cli.nombre, direccion: cli.direccion || '',
     items:ST.carrito.map(i=>({n:i.nombre,c:i.cant,p:i.precio,id:i.id})),
-    subtotal:sub, impuesto:imp, total:tot, metodo, zelle: zelleConf
+    subtotal:sub, impuesto:imp, total:tot, metodo, zelle: zelleId ? {id:zelleId, proof:null} : null
   };
   ST.ventas.unshift(venta); ST.folio++; LS.set('ventas',ST.ventas); LS.set('folio',ST.folio);
   cli.compras=(cli.compras||0)+1; cli.total=Number(cli.total||0)+tot; cli.ultima=venta.fecha; LS.set('clientes',ST.clientes);
@@ -828,8 +849,8 @@ function pintarRecibo(v){
   box.classList.remove('hidden');
   box.innerHTML = `
     <h3>Recibo #${v.id}</h3>
-    <p class="muted">${v.fecha} · <em>toca el recibo para reimprimir</em></p>
-    <div id="receiptArea" class="table-wrap">
+    <p class="muted">${v.fecha} · <em>haz clic para imprimir</em></p>
+    <div id="receiptArea" class="table-wrap" style="cursor:pointer">
       <table>
         <thead><tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Importe</th></tr></thead>
         <tbody>${v.items.map(it=>`
@@ -847,142 +868,42 @@ function pintarRecibo(v){
           <tr><td colspan="3" style="text-align:right">Método</td><td>${v.metodo}${v.zelle&&v.zelle.id? ' · ID: '+esc(v.zelle.id) : ''}</td></tr>
         </tfoot>
       </table>
-    </div>
-    <div class="row" style="margin-top:8px;align-items:center">
-      <select id="receiptFormat" class="input" style="max-width:170px">
-        <option value="a5" selected>A5</option>
-        <option value="a4">A4</option>
-        <option value="ticket80">Ticket 80mm</option>
-      </select>
-      <button id="recPrint" class="btn primary">🖨️ Imprimir / Guardar</button>
     </div>`;
-  $('#recPrint').onclick=()=>reciboPrettyPrint(v);
-  $('#receiptArea').addEventListener('click', ()=>reciboPrettyPrint(v));
+  $('#receiptArea')?.addEventListener('click', ()=>printRecibo(v));
 }
 
-/* ===== Recibo bonito (canvas → PNG, imprimir sólo recibo) ===== */
-async function reciboPrettyPrint(v){
-  const fmtSel = $('#receiptFormat')?.value || 'a5';
-  let W, H, pageCSS;
-  if(fmtSel==='a4'){
-    W=1654; H=2339; pageCSS='@page { size: A4 portrait; margin: 10mm; }';
-  } else if(fmtSel==='ticket80'){
-    W=640; const base=480, per=64; H = base + v.items.length*per + 320;
-    pageCSS='@page { size: 80mm auto; margin: 5mm; } body{background:#0f1420;}';
-  } else {
-    W=1200; H=1700; pageCSS='@page { size: A5 portrait; margin: 10mm; }';
-  }
-
-  const c=document.createElement('canvas');
-  c.width=W; c.height=H;
-  const ctx=c.getContext('2d');
-
-  // Fondo
-  ctx.fillStyle='#0f1420';
-  ctx.fillRect(0,0,W,H);
-
-  const isTicket = fmtSel==='ticket80';
-  const pad = isTicket ? 28 : Math.round(W*0.05);
-  const cardR = isTicket ? 16 : 24;
-  const cardW = W - pad*2;
-  const cardH = H - pad*2;
-
-  roundRect(ctx, pad, pad, cardW, cardH, cardR, '#0b111d', true, '#223352');
-
-  // Logo
-  const logo = await loadImage('logoklem.png'); // si falla, seguimos
-  const logoSize = isTicket ? 80 : Math.round(W*0.08);
-  if(logo) ctx.drawImage(logo, pad+40, pad+40, logoSize, logoSize);
-
-  // Títulos
-  ctx.fillStyle='#e8eef8';
-  ctx.font= (isTicket?'bold 26px Inter':'bold 42px Inter');
-  ctx.fillText('Stradivaryus Tools', pad+40+logoSize+20, pad+40+Math.round(logoSize*0.6));
-  ctx.font= (isTicket?'16px Inter':'20px Inter');
-  ctx.fillStyle='#a7b3c9';
-  ctx.fillText('Recibo de compra', pad+40+logoSize+20, pad+40+Math.round(logoSize*0.6)+ (isTicket?22:35));
-
-  // Datos
-  ctx.fillStyle='#e8eef8';
-  ctx.font=(isTicket?'15px Inter':'18px Inter');
-  let baseY = pad + logoSize + (isTicket?80:120);
-  ctx.fillText(`Número: ${v.id}`, pad+40, baseY);
-  ctx.fillText(`Fecha: ${v.fecha}`, pad+40, baseY+(isTicket?24:30));
-  ctx.fillText(`Cliente: ${v.cliente}`, pad+40, baseY+(isTicket?48:60));
-  if(v.direccion) ctx.fillText(`Dirección: ${v.direccion}`, pad+40, baseY+(isTicket?72:90));
-
-  // Tabla
-  let y = baseY + (isTicket?80:120);
-  ctx.fillStyle='#cfe1ff';
-  ctx.font=(isTicket?'bold 15px Inter':'bold 18px Inter');
-
-  const colNombreX = pad+40;
-  const colCantX = isTicket ? Math.round(W*0.62) : Math.round(W*0.65);
-  const colPrecioX = isTicket ? Math.round(W*0.75) : Math.round(W*0.73);
-  const colImpX = isTicket ? Math.round(W*0.86) : Math.round(W*0.85);
-
-  ctx.fillText('Producto', colNombreX, y);
-  ctx.fillText('Cant', colCantX, y);
-  ctx.fillText('Precio', colPrecioX, y);
-  ctx.fillText('Importe', colImpX, y);
-  y += (isTicket?14:18);
-  line(ctx, pad+30, y, W-(pad+30), y, '#1a2440');
-  y += (isTicket?22:26);
-
-  ctx.font=(isTicket?'14px Inter':'16px Inter');
-  ctx.fillStyle='#e8eef8';
-  const lineH = isTicket ? 20 : 22;
-  const wrapW = Math.round(cardW*0.6);
-
-  v.items.forEach(it=>{
-    wrapText(ctx, it.n, colNombreX, y, wrapW, lineH);
-    const rows = Math.max(1, Math.ceil(ctx.measureText(it.n).width / wrapW));
-    ctx.fillText(String(it.c), colCantX, y);
-    ctx.fillText(`$${cur(it.p)}`, colPrecioX, y);
-    ctx.fillText(`$${cur(it.p*it.c)}`, colImpX, y);
-    y += lineH*rows + (isTicket?6:8);
-  });
-
-  y += (isTicket?6:10);
-  line(ctx, pad+30, y, W-(pad+30), y, '#1a2440');
-  y += (isTicket?20:30);
-
-  ctx.font=(isTicket?'15px Inter':'18px Inter');
-  ctx.fillText(`Subtotal: $${cur(v.subtotal)}`, colPrecioX, y);
-  y+= (isTicket?18:26);
-  ctx.fillText(`Impuesto: $${cur(v.impuesto)}`, colPrecioX, y);
-  y+= (isTicket?20:28);
-  ctx.font=(isTicket?'bold 18px Inter':'bold 22px Inter');
-  ctx.fillText(`Total: $${cur(v.total)}`, colPrecioX, y);
-
-  // Export/Compartir
-  const dataURL = c.toDataURL('image/png');
-  const blob = dataURLtoBlob(dataURL);
-  const shared = await shareFile(`Recibo_${v.id}.png`, blob, 'image/png');
-  if(!shared){ download(`Recibo_${v.id}.png`, blob, 'image/png'); }
-
-  const url = URL.createObjectURL(blob);
-  openPrintWindowWithImage(url, pageCSS);
-}
-
-function openPrintWindowWithImage(imgURL, pageCSS){
+function printRecibo(v){
   const w = window.open('', '_blank');
-  if(!w){
-    alert('Se guardó el archivo. Para imprimir, habilita ventanas emergentes o abre el archivo desde tu galería/descargas.');
-    return;
-  }
+  if(!w){ alert('Habilita ventanas emergentes para imprimir.'); return; }
   const html = `
-  <html><head><title>Imprimir Recibo</title>
-  <style>
-    ${pageCSS}
-    html,body{height:100%}
-    body{ margin:0; background:#0f1420; }
-    .wrap{ display:flex; align-items:center; justify-content:center; width:100vw; height:100vh; }
-    img{ max-width:100%; max-height:100%; display:block; }
-  </style></head>
-  <body>
-    <div class="wrap"><img src="${imgURL}" onload="setTimeout(()=>window.print(), 120)"></div>
-  </body></html>`;
+    <html><head><title>Recibo ${v.id}</title>
+      <style>
+        body{font-family:Arial, sans-serif; padding:16px}
+        table{width:100%; border-collapse:collapse}
+        th,td{border:1px solid #ccc; padding:8px; font-size:12px}
+        thead th{background:#eee}
+        tfoot td{font-weight:bold}
+      </style>
+    </head>
+    <body>
+      <h2>Recibo #${v.id}</h2>
+      <p>${v.fecha} · ${esc(v.cliente)}</p>
+      <table>
+        <thead><tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Importe</th></tr></thead>
+        <tbody>
+        ${v.items.map(it=>`
+          <tr><td>${esc(it.n)}</td><td>${it.c}</td><td>$${cur(it.p)}</td><td>$${cur(it.p*it.c)}</td></tr>
+        `).join('')}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3" style="text-align:right">Subtotal</td><td>$${cur(v.subtotal)}</td></tr>
+          <tr><td colspan="3" style="text-align:right">Impuesto</td><td>$${cur(v.impuesto)}</td></tr>
+          <tr><td colspan="3" style="text-align:right">Total</td><td>$${cur(v.total)}</td></tr>
+          <tr><td colspan="3" style="text-align:right">Método</td><td>${v.metodo}${v.zelle&&v.zelle.id? ' · ID: '+esc(v.zelle.id) : ''}</td></tr>
+        </tfoot>
+      </table>
+      <script>setTimeout(()=>window.print(), 150);<\/script>
+    </body></html>`;
   w.document.open(); w.document.write(html); w.document.close();
 }
 
@@ -1033,7 +954,7 @@ function presCSV(tableSel,totalSel){
   download('presupuesto.csv', csv, 'text/csv');
 }
 
-/* ===== Robustez PDF ===== */
+// Carga robusta de libs PDF
 function loadScript(src){
   return new Promise((resolve, reject)=>{
     const s = document.createElement('script');
@@ -1055,7 +976,6 @@ async function ensurePDFLibs(){
   }catch{ throw new Error('jsPDF no está disponible'); }
 }
 
-// ==== PDF elegante + guardar/compartir + imprimir (solo admin)
 async function presPDF(cliSel, proySel, tableSel, totalSel, saveAdmin, paper='a4'){
   try{
     await ensurePDFLibs();
@@ -1146,7 +1066,7 @@ function pintarVentas(){
       <td><button class="chip danger" data-delv="${ix}">✕</button></td>
     </tr>`).join('');
   tb.querySelectorAll('[data-delv]').forEach(b=> b.onclick=()=>{ ST.ventas.splice(Number(b.dataset.delv),1); LS.set('ventas',ST.ventas); pintarVentas(); });
-  tb.querySelectorAll('[data-print]').forEach(b=> b.onclick=()=>{ const v = ST.ventas[Number(b.dataset.print)]; if(v) reciboPrettyPrint(v); });
+  tb.querySelectorAll('[data-print]').forEach(b=> b.onclick=()=>{ const v = ST.ventas[Number(b.dataset.print)]; if(v) printRecibo(v); });
 }
 function pintarClientes(){
   const tb=$('#tbClientes'); if(!tb) return;
@@ -1379,7 +1299,6 @@ function safeImg(imgEl, placeholder='data:image/svg+xml;utf8,<svg xmlns="http://
 function setupDraggableFab(){
   const fab = document.querySelector('.fab'); if(!fab) return;
   const k = 'fab_pos_v1';
-  // Restaurar posición
   try{
     const pos = JSON.parse(localStorage.getItem(k));
     if(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)){
@@ -1426,6 +1345,41 @@ function setupDraggableFab(){
 
   function pointer(e){ if(e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY}; return {x:e.clientX, y:e.clientY}; }
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+}
+
+/* ===== Primera contraseña (asistente de primer uso) ===== */
+async function ensureAdminPassword(){
+  try{
+    const existing = LS.get('adminHash', null);
+    if(existing) return; // ya existe
+
+    // Abrir modal de creación
+    openModal('Crear contraseña Admin', `
+      <form id="fSetPass" class="form">
+        <div class="row wrap">
+          <input id="pass1" class="input" type="password" placeholder="Nueva contraseña (mín. 3)" required>
+        </div>
+        <div class="row wrap">
+          <input id="pass2" class="input" type="password" placeholder="Repite contraseña" required>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    `);
+
+    $('#fSetPass').onsubmit = async (e)=>{
+      e.preventDefault();
+      const p1 = $('#pass1').value.trim();
+      const p2 = $('#pass2').value.trim();
+      if(p1.length < 3){ alert('Mínimo 3 caracteres'); return; }
+      if(p1 !== p2){ alert('No coinciden'); return; }
+      const h = await hashString(p1);
+      LS.set('adminHash', h);
+      closeModal();
+      toast('Contraseña creada. Ya puedes iniciar sesión desde “🔐 Admin”.');
+    };
+  }catch{}
 }
 
 })(); // <== FIN IIFE
