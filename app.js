@@ -110,8 +110,8 @@ async function init(){
     }
   }catch{}
 
-  /* === NUEVO: Asistente de primera contraseña si no existe === */
-  await ensureAdminPassword();
+  /* === NUEVO: Asistente  === */
+  /* ===await ensureAdminPassword(); === */
 
   // SW
   if('serviceWorker' in navigator){
@@ -1383,3 +1383,4 @@ async function ensureAdminPassword(){
 }
 
 })(); // <== FIN IIFE
+
