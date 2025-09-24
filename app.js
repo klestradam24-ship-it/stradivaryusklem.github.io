@@ -1,6 +1,5 @@
-/* app.js - Stradivaryus Tools (versión completa 
+/* app.js - Stradivaryus Tools (versión completa, cliente sin clave inicial configurable desde Admin) */
 (()=>{
-
 /* ===== Helpers ===== */
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -8,6 +7,42 @@ const LS={get:(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{re
 const cur = n => (Number(n)||0).toFixed(2);
 const u = ()=> 'id'+Math.random().toString(36).slice(2)+Date.now().toString(36);
 const esc = s => String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+function track(eventName, params={}){ (window.dataLayer=window.dataLayer||[]).push({event:eventName, ...params}); }
+
+function toast(msg){
+  let box = $('#toastBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id='toastBox';
+    Object.assign(box.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',zIndex:'9999'});
+    document.body.appendChild(box);
+  }
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  Object.assign(t.style,{opacity:'0',transition:'opacity .25s ease, transform .25s ease',background:'var(--card,#101826)',color:'var(--text,#e8eef8)',padding:'10px 14px',borderRadius:'10px',boxShadow:'0 6px 20px rgba(0,0,0,.35)',marginTop:'8px',transform:'translateY(6px)'});
+  box.appendChild(t);
+  requestAnimationFrame(()=>{ t.style.opacity='1'; t.style.transform='translateY(0)'; });
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; t.addEventListener('transitionend',()=>t.remove(),{once:true}); },2600);
+}
+function download(filename, data, mime='application/octet-stream'){
+  const blob = data instanceof Blob ? data : new Blob([data],{type:mime});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function shareFile(name, blob, mime='application/octet-stream'){
+  try{
+    if(navigator.canShare && navigator.canShare({ files: [new File([blob], name, {type:mime})]})){
+      await navigator.share({ files:[ new File([blob], name, {type:mime}) ] });
+      return true;
+    }
+  }catch{}
+  return false;
+}
+function safeImg(img){
+  img.addEventListener('error', ()=>{ img.src = img.getAttribute('data-fallback') || 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; }, {once:true});
+}
 
 /* ===== Seguridad (hash) & Utils imagen ===== */
 async function hashString(str){
@@ -46,46 +81,11 @@ async function filesToDataURLCompressed(fileList, maxDim=1400, quality=0.82){
   return outs;
 }
 function dataURLtoBlob(dataURL){
-  const parts=dataURL.split(','); const bstr=atob(parts[1]); let n=bstr.length; const u8=new Uint8Array(n);
+  const parts=dataURL.split(','); const b64=parts[1]||''; const bstr=atob(b64); let n=bstr.length; const u8=new Uint8Array(n);
   while(n--){u8[n]=bstr.charCodeAt(n)}
   return new Blob([u8], {type: parts[0].split(':')[1].split(';')[0]});
 }
-function track(eventName, params={}){ (window.dataLayer=window.dataLayer||[]).push({event:eventName, ...params}); }
-function toast(msg){
-  let box = $('#toastBox');
-  if(!box){
-    box = document.createElement('div');
-    box.id='toastBox';
-    Object.assign(box.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',zIndex:'9999'});
-    document.body.appendChild(box);
-  }
-  const t=document.createElement('div');
-  t.className='toast';
-  t.textContent=msg;
-  Object.assign(t.style,{opacity:'0',transition:'opacity .25s ease, transform .25s ease',background:'var(--card,#101826)',color:'var(--text,#e8eef8)',padding:'10px 14px',borderRadius:'10px',boxShadow:'0 6px 20px rgba(0,0,0,.35)',marginTop:'8px',transform:'translateY(6px)'});
-  box.appendChild(t);
-  requestAnimationFrame(()=>{ t.style.opacity='1'; t.style.transform='translateY(0)'; });
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; t.addEventListener('transitionend',()=>t.remove(),{once:true}); },2600);
-}
-function download(filename, data, mime='application/octet-stream'){
-  const blob = data instanceof Blob ? data : new Blob([data],{type:mime});
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-async function shareFile(name, blob, mime='application/octet-stream'){
-  try{
-    if(navigator.canShare && navigator.canShare({ files: [new File([blob], name, {type:mime})]})){
-      await navigator.share({ files:[ new File([blob], name, {type:mime}) ] });
-      return true;
-    }
-  }catch{}
-  return false;
-}
-function safeImg(img){
-  img.addEventListener('error', ()=>{ img.src = img.getAttribute('data-fallback') || 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; }, {once:true});
-}
-function imgToDataURL(url){
+async function imgToDataURL(url){
   return new Promise((res)=>{
     try{
       const img=new Image();
@@ -121,17 +121,7 @@ const ST = {
   search:{q:'',cat:''}
 };
 
-/* ===== NUEVO: helpers para clientHash ===== */
-function getValidClientHash(){
-  const raw = LS.get('clientHash', null);
-  if(typeof raw!=='string') return null;
- 
-  if(/^[0-9a-f]{64}$/i.test(raw)) return raw;
-  
-  return null;
-}
-
-/* ===== Auth Defaults (seed: Control) ===== */
+/* ===== Auth Default (Admin=Control) ===== */
 async function ensureAuthDefaults(){
   let aHash = LS.get('adminHash', null);
   if(!aHash){
@@ -145,6 +135,7 @@ async function ensureAuthDefaults(){
 document.addEventListener('DOMContentLoaded', init);
 
 async function init(){
+  // Reset admin por URL opcional
   try{
     const qs = new URLSearchParams(location.search);
     if (qs.get('resetadmin') === '1') {
@@ -152,30 +143,31 @@ async function init(){
       sessionStorage.removeItem('st_admin_ok');
       toast('Admin reseteado. Configura una nueva clave en Admin.');
     }
-    // NUEVO:
-    if (qs.get('nocliente') === '1') {
-      localStorage.removeItem('clientHash');
-      sessionStorage.removeItem('st_client_ok');
-      ST.clientAuthed = true; // 
-      sessionStorage.setItem('st_client_ok','1');
-      toast('Clave de cliente eliminada (acceso directo activado).');
-    }
   }catch{}
 
+  // Registrar SW
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
 
   await ensureAuthDefaults();
 
+  // Abrir cliente sin clave si no existe clientHash
+  if(!LS.get('clientHash', null) && !ST.clientAuthed){
+    ST.clientAuthed = true;
+    sessionStorage.setItem('st_client_ok','1');
+  }
+
+  // Header
   $('#btnLogin')?.addEventListener('click', ()=>goView('admin'));
 
+  // Arranque UI
   bgAnimate();
   setupHeaderNav();
   setupTabbar();
 
   setupAdmin();
-  setupCliente();            //
+  setupCliente();        // respeta “sin clave” si no hay clientHash
   initHero();
   initProductos();
   initCarrito();
@@ -289,11 +281,11 @@ function goTopCliente(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* ===== Cliente: gate y subtabs ===== */
+/* ===== Cliente ===== */
 function setupCliente(){
-  // 
-  const storedClientHash = getValidClientHash();
-  if(!storedClientHash && !ST.clientAuthed){
+  // Entrar directo si no existe clave de cliente
+  const hasClientHash = !!LS.get('clientHash', null);
+  if(!hasClientHash && !ST.clientAuthed){
     ST.clientAuthed = true;
     sessionStorage.setItem('st_client_ok','1');
   }
@@ -312,25 +304,21 @@ function setupCliente(){
 
   if(ST.clientAuthed){ subGo('productos'); }
 }
-
-/* ===== Login Cliente ===== */
 async function tryClienteLogin(){
-  const storedClientHash = getValidClientHash();
+  const storedClientHash = LS.get('clientHash', null);
 
-  // Si no hay clave válida -> acceso directo
+  // Si no hay clave definida -> acceso directo
   if(!storedClientHash){
     ST.clientAuthed = true;
     sessionStorage.setItem('st_client_ok','1');
     updateClienteGateUI();
     subGo('productos');
-    toast('Acceso directo (sin clave de cliente definida)');
+    toast('Acceso directo (Cliente sin clave)');
     return;
   }
 
-  // Sí h
   const pass = ($('#clientePass')?.value || '').trim();
   if(!pass) return alert('Ingresa la contraseña.');
-
   const ph = await hashString(pass);
   if(ph === storedClientHash){
     ST.clientAuthed = true;
@@ -342,20 +330,16 @@ async function tryClienteLogin(){
     alert('Contraseña incorrecta');
   }
 }
-
 function updateClienteGateUI(){
   const gate = $('#clienteGate');
   const subtab = $('#subtabCliente');
-  const hasClientHash = !!getValidClientHash();
+  const hasClientHash = !!LS.get('clientHash', null);
 
-  // Si NO hay
   if(!hasClientHash){
     gate?.classList.add('hidden');
     subtab?.classList.remove('hidden');
     return;
   }
-
-  // Si hay cla
   if(ST.clientAuthed){
     gate?.classList.add('hidden');
     subtab?.classList.remove('hidden');
@@ -364,7 +348,6 @@ function updateClienteGateUI(){
     subtab?.classList.add('hidden');
   }
 }
-
 function ensureClienteGate(){ updateClienteGateUI(); }
 function subGo(alias){
   const viewId = 'view-' + alias;
@@ -416,13 +399,13 @@ function setupAdmin(){
     const h = await hashString(np); LS.set('adminHash', h); $('#passNew').value=''; toast('Contraseña ADMIN actualizada');
   });
 
-  // Guardar/
+  // Guardar/eliminar clave de CLIENTE desde Admin
   $('#clientKeySave')?.addEventListener('click', async ()=>{
     const np = $('#clientKeyNew')?.value.trim();
     if(!np){
       localStorage.removeItem('clientHash'); // sin clave -> acceso directo
       $('#clientKeyNew').value = '';
-      toast('Clave de cliente eliminada. Ahora no se pide clave en Cliente.');
+      toast('Clave de cliente eliminada. Ahora NO se pide clave en Cliente.');
       ST.clientAuthed = true;
       sessionStorage.setItem('st_client_ok','1');
       updateClienteGateUI();
@@ -432,7 +415,6 @@ function setupAdmin(){
     LS.set('clientHash', h);
     $('#clientKeyNew').value = '';
     toast('Clave de cliente guardada. A partir de ahora pedirá contraseña.');
-    // Obligar a
     ST.clientAuthed = false;
     sessionStorage.removeItem('st_client_ok');
     updateClienteGateUI();
@@ -1090,225 +1072,277 @@ function pintarRecibo(v){
         </tfoot>
       </table>
     </div>`;
-  $('#receiptArea')?.addEventListener('click', ()=>window.print());
+  $('#receiptArea')?.addEventListener('click', ()=> window.print());
 }
 
-/* ===== Listado Ventas / Clientes ===== */
+/* ===== Listados Admin (Ventas, Clientes, Directorio) ===== */
 function pintarVentas(){
-  const cont = $('#ventasList'); if(!cont) return;
-  cont.innerHTML = ST.ventas.map(v=>`
+  const wrap = $('#ventasWrap'); if(!wrap) return;
+  wrap.innerHTML = ST.ventas.map(v=>`
     <div class="card mini">
       <div class="row wrap" style="justify-content:space-between;align-items:center">
-        <strong>${esc(v.id)}</strong>
+        <strong>#${v.id}</strong>
         <span class="muted">${esc(v.fecha)}</span>
       </div>
-      <div class="muted">${esc(v.cliente)} · $${cur(v.total)} (${v.metodo})</div>
-      <div class="row" style="margin-top:6px">
-        <button class="chip" data-viewrec="${v.id}">Ver recibo</button>
+      <div class="row wrap">
+        <span>${esc(v.cliente)}</span>
+        <span class="muted"> · $${cur(v.total)}</span>
       </div>
+      <div class="row"><button class="chip" data-verrec="${v.id}">Recibo</button></div>
     </div>`).join('') || `<div class="muted">Sin ventas aún</div>`;
-  cont.querySelectorAll('[data-viewrec]').forEach(b=>{
-    const v = ST.ventas.find(x=>x.id===b.dataset.viewrec);
-    b.onclick = ()=> v && pintarRecibo(v);
+  wrap.querySelectorAll('[data-verrec]').forEach(b=>{
+    b.onclick = ()=>{
+      const v=ST.ventas.find(x=>x.id===b.dataset.verrec);
+      if(v) pintarRecibo(v);
+    };
   });
 }
 function pintarClientes(){
-  const total = ST.clientes.filter(c=>c.id!=='general').length;
-  $('#totalClientes')?.textContent = String(total);
-  const top = ST.clientes.slice().filter(c=>c.id!=='general').sort((a,b)=> (b.total||0)-(a.total||0)).slice(0,5);
-  const box = $('#topClientes'); if(!box) return;
-  box.innerHTML = top.map(c=>`
-    <li>${esc(c.nombre)} <span class="muted">· $${cur(c.total||0)}</span></li>
-  `).join('') || `<li class="muted">Sin clientes aún</li>`;
+  const wrap=$('#clientesWrap'); if(!wrap) return;
+  const rows = ST.clientes.filter(c=>c.id!=='general').map(c=>`
+    <tr>
+      <td>${esc(c.nombre)}</td>
+      <td>${esc(c.telefono||'')}</td>
+      <td>${esc(c.empresa||'')}</td>
+      <td>${esc(c.email||'')}</td>
+      <td>${esc(c.ultima||'')}</td>
+      <td class="num">$${cur(c.total||0)}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nombre</th><th>Tel</th><th>Empresa</th><th>Correo</th><th>Última compra</th><th>Total</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="6" class="muted">Sin clientes</td></tr>'}</tbody>
+      </table>
+    </div>`;
 }
 function pintarClientesDir(){
-  const list = $('#clientesDir'); if(!list) return;
-  const arr = ST.clientes.filter(c=>c.id!=='general');
-  list.innerHTML = arr.map(c=>`
+  const wrap=$('#clientesDir'); if(!wrap) return;
+  wrap.innerHTML = ST.clientes.filter(c=>c.id!=='general').map(c=>`
     <div class="card mini">
       <strong>${esc(c.nombre)}</strong>
       <div class="muted">${esc(c.telefono||'')}</div>
-      <div class="muted">${esc(c.email||'')}</div>
+      <div class="muted">${esc(c.direccion||'')}</div>
       <div class="muted">${esc(c.empresa||'')}</div>
-      <div class="row" style="margin-top:6px">
-        <button class="chip danger" data-delc="${c.id}">Eliminar</button>
-      </div>
-    </div>`).join('') || `<div class="muted">Sin clientes</div>`;
-  list.querySelectorAll('[data-delc]').forEach(b=>{
-    b.onclick=()=>{
-      if(!confirm('¿Eliminar cliente?')) return;
-      const id=b.dataset.delc;
-      ST.clientes = ST.clientes.filter(x=>x.id!==id);
-      LS.set('clientes', ST.clientes);
-      pintarClientesDir(); pintarClientes(); renderClientesSel();
-    };
-  });
+    </div>`).join('') || `<div class="muted">Directorio vacío</div>`;
 }
 
-/* ===== Presupuestos (Admin) ===== */
+/* ===== Presupuestos ===== */
 function initPresupuestoAdmin(){
-  $('#btnNuevoPres')?.addEventListener('click', openFormPres);
+  // Render inicial
   pintarPres();
-}
-function openFormPres(){
-  openModal('Nuevo presupuesto', `
-    <form id="fPres" class="form">
-      <div class="row wrap">
-        <label class="muted" style="min-width:120px">Cliente</label>
-        <input class="input" id="prCliente" placeholder="Nombre del cliente" required>
-      </div>
-      <div class="row wrap">
-        <label class="muted" style="min-width:120px">Descripción</label>
-        <input class="input" id="prDesc" placeholder="Descripción del trabajo" required>
-      </div>
-      <div class="row wrap">
-        <label class="muted" style="min-width:120px">Monto</label>
-        <input class="input" id="prMonto" type="number" step="0.01" placeholder="0.00" required>
-      </div>
-      <div class="row wrap">
-        <label class="muted" style="min-width:120px">Notas</label>
-        <textarea class="input" id="prNotas" rows="3" placeholder="Notas (opcional)"></textarea>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" type="submit">Guardar</button>
-      </div>
-    </form>
-  `);
-  $('#fPres').onsubmit=(e)=>{
-    e.preventDefault();
-    const p={
-      id:'P'+String(Date.now()).slice(-6),
-      fecha:new Date().toLocaleString(),
-      cliente:$('#prCliente').value.trim(),
-      desc:$('#prDesc').value.trim(),
-      monto:Number($('#prMonto').value||0),
-      notas:$('#prNotas').value.trim()
+
+  // Form nuevo presupuesto
+  $('#btnNuevoPres')?.addEventListener('click', ()=>{
+    openModal('Nuevo presupuesto', `
+      <form id="fPres" class="form">
+        <div class="row wrap">
+          <label class="muted" style="min-width:120px">Cliente</label>
+          <input class="input" id="prCliente" placeholder="Nombre del cliente" required>
+        </div>
+        <div class="row wrap">
+          <label class="muted" style="min-width:120px">Descripción</label>
+          <input class="input" id="prDesc" placeholder="Descripción general">
+        </div>
+        <div class="row wrap">
+          <label class="muted" style="min-width:120px">Importe</label>
+          <input class="input" id="prImporte" type="number" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" type="submit">Guardar</button></div>
+      </form>
+    `);
+    $('#fPres').onsubmit = (e)=>{
+      e.preventDefault();
+      const item = {
+        id: 'P'+u().slice(-6),
+        fecha: new Date().toLocaleString(),
+        cliente: $('#prCliente').value.trim(),
+        desc: $('#prDesc').value.trim(),
+        importe: Number($('#prImporte').value||0)
+      };
+      ST.presupuestos.unshift(item);
+      LS.set('presupuestos', ST.presupuestos);
+      closeModal();
+      pintarPres();
+      toast('Presupuesto guardado');
     };
-    if(!p.cliente || !p.desc) return alert('Completa los campos obligatorios');
-    ST.presupuestos.unshift(p); LS.set('presupuestos', ST.presupuestos);
-    closeModal(); pintarPres(); toast('Presupuesto guardado');
-  };
+  });
 }
 function pintarPres(){
-  const cont=$('#presList'); if(!cont) return;
-  cont.innerHTML = ST.presupuestos.map(p=>`
+  const wrap=$('#presWrap'); if(!wrap) return;
+  wrap.innerHTML = ST.presupuestos.map(p=>`
     <div class="card mini">
       <div class="row wrap" style="justify-content:space-between;align-items:center">
-        <strong>${esc(p.id)} · ${esc(p.cliente)}</strong>
+        <strong>#${p.id}</strong>
         <span class="muted">${esc(p.fecha)}</span>
       </div>
-      <div class="muted">${esc(p.desc)}</div>
-      <div class="row wrap" style="margin-top:6px;justify-content:space-between;align-items:center">
-        <span><strong>$${cur(p.monto)}</strong></span>
-        <div class="row">
-          <button class="chip" data-expjson="${p.id}">Exportar</button>
-          <button class="chip" data-delpres="${p.id}">Eliminar</button>
-        </div>
+      <div class="row wrap">
+        <span>${esc(p.cliente)}</span>
+        <span class="muted"> · $${cur(p.importe)}</span>
       </div>
-    </div>
-  `).join('') || `<div class="muted">Sin presupuestos</div>`;
-  cont.querySelectorAll('[data-delpres]').forEach(b=> b.onclick=()=>{
-    if(!confirm('¿Eliminar presupuesto?')) return;
-    const id=b.dataset.delpres;
-    ST.presupuestos = ST.presupuestos.filter(x=>x.id!==id);
-    LS.set('presupuestos', ST.presupuestos);
-    pintarPres();
+      <div class="row wrap">
+        <span class="muted">${esc(p.desc||'')}</span>
+      </div>
+      <div class="row wrap">
+        <button class="chip" data-exp="${p.id}">Exportar PDF</button>
+        <button class="chip danger" data-delp="${p.id}">Eliminar</button>
+      </div>
+    </div>`).join('') || `<div class="muted">Sin presupuestos</div>`;
+  wrap.querySelectorAll('[data-delp]').forEach(b=>{
+    b.onclick=()=>{
+      if(!confirm('¿Eliminar presupuesto?')) return;
+      ST.presupuestos = ST.presupuestos.filter(x=>x.id!==b.dataset.delp);
+      LS.set('presupuestos', ST.presupuestos);
+      pintarPres();
+    };
   });
-  cont.querySelectorAll('[data-expjson]').forEach(b=> b.onclick=()=>{
-    const p = ST.presupuestos.find(x=>x.id===b.dataset.expjson); if(!p) return;
-    download(`presupuesto_${p.id}.json`, JSON.stringify(p, null, 2), 'application/json');
+  wrap.querySelectorAll('[data-exp]').forEach(b=>{
+    b.onclick=()=> exportPresPDF(b.dataset.exp);
   });
+}
+async function exportPresPDF(id){
+  const p = ST.presupuestos.find(x=>x.id===id); if(!p) return;
+  // Para mantener todo client-side y simple, exportamos como HTML imprimible
+  const html = `
+  <html><head><meta charset="utf-8"><title>Presupuesto ${esc(p.id)}</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; padding:24px; color:#111827}
+    h1{margin:0 0 6px}
+    .muted{color:#6b7280}
+    table{width:100%; border-collapse:collapse; margin-top:16px}
+    th,td{border-bottom:1px solid #e5e7eb; padding:8px; text-align:left}
+    .right{text-align:right}
+    .brand{font-weight:600}
+  </style></head><body>
+  <div class="brand">Stradivaryus Tools</div>
+  <h1>Presupuesto ${esc(p.id)}</h1>
+  <div class="muted">${esc(p.fecha)}</div>
+  <p><strong>Cliente:</strong> ${esc(p.cliente)}</p>
+  <p><strong>Descripción:</strong> ${esc(p.desc||'')}</p>
+  <table><tbody>
+    <tr><td>Importe</td><td class="right">$${cur(p.importe)}</td></tr>
+  </tbody></table>
+  <p class="muted" style="margin-top:24px">Gracias por su preferencia.</p>
+  </body></html>`;
+  const blob = new Blob([html],{type:'text/html'});
+  const ok = await shareFile(`Presupuesto_${p.id}.html`, blob, 'text/html');
+  if(!ok) download(`Presupuesto_${p.id}.html`, blob, 'text/html');
 }
 
 /* ===== Lightbox ===== */
 function lightboxInit(){
-  const lb = $('#lightbox'); if(!lb) return;
-  $('#lbClose')?.addEventListener('click', closeLB);
-  $('#lbPrev')?.addEventListener('click', ()=>lbNav(-1));
-  $('#lbNext')?.addEventListener('click', ()=>lbNav(1));
-  $('#lbZoomIn')?.addEventListener('click', ()=>setLBZoom(ST.lb.zoom*1.2));
-  $('#lbZoomOut')?.addEventListener('click', ()=>setLBZoom(ST.lb.zoom/1.2));
-  lb.addEventListener('click', (e)=>{ if(e.target.id==='lightbox') closeLB(); });
+  const lb = document.createElement('div');
+  lb.id='lb';
+  lb.innerHTML = `
+    <div id="lbMask"></div>
+    <div id="lbBox">
+      <button id="lbClose" aria-label="Cerrar">✕</button>
+      <button id="lbPrev" aria-label="Anterior">‹</button>
+      <img id="lbImg" alt="">
+      <button id="lbNext" aria-label="Siguiente">›</button>
+      <div id="lbZoom">
+        <button id="lbZout">−</button>
+        <span id="lbZval">100%</span>
+        <button id="lbZin">＋</button>
+      </div>
+    </div>`;
+  document.body.appendChild(lb);
+  $('#lbMask').onclick = closeLB;
+  $('#lbClose').onclick = closeLB;
+  $('#lbPrev').onclick = ()=>stepLB(-1);
+  $('#lbNext').onclick = ()=>stepLB(1);
+  $('#lbZin').onclick = ()=>zoomLB(1.15);
+  $('#lbZout').onclick = ()=>zoomLB(1/1.15);
 }
 function openLB(list, idx=0){
-  if(!list || !list.length) return;
-  ST.lb={list, idx:Math.max(0,Math.min(idx,list.length-1)), zoom:1, open:true};
-  updateLB();
-  $('#lightbox')?.classList.add('show');
+  ST.lb={list,idx,zoom:1,open:true};
+  renderLB();
+  document.body.classList.add('modal-open');
 }
 function closeLB(){
   ST.lb.open=false;
-  $('#lightbox')?.classList.remove('show');
+  $('#lbImg').src='';
+  document.body.classList.remove('modal-open');
+  $('#lb')?.classList.remove('show');
 }
-function lbNav(d){
-  if(!ST.lb.open) return;
-  ST.lb.idx=(ST.lb.idx+d+ST.lb.list.length)%ST.lb.list.length;
-  ST.lb.zoom=1;
-  updateLB();
+function stepLB(d){
+  if(!ST.lb.open || !ST.lb.list.length) return;
+  ST.lb.idx = (ST.lb.idx + d + ST.lb.list.length) % ST.lb.list.length;
+  ST.lb.zoom = 1;
+  renderLB();
 }
-function setLBZoom(z){ ST.lb.zoom=Math.max(0.2, Math.min(z,5)); updateLB(); }
-function updateLB(){
-  const img=$('#lbImg'); const cap=$('#lbCap');
-  if(!img) return;
-  img.style.transform=`scale(${ST.lb.zoom})`;
-  img.src = ST.lb.list[ST.lb.idx];
-  img.onload = ()=> safeImg(img);
-  cap.textContent = `${ST.lb.idx+1}/${ST.lb.list.length}`;
+function zoomLB(f){
+  ST.lb.zoom = Math.max(0.25, Math.min(4, ST.lb.zoom * f));
+  $('#lbZval').textContent = Math.round(ST.lb.zoom*100)+'%';
+  $('#lbImg').style.transform = `scale(${ST.lb.zoom})`;
+}
+function renderLB(){
+  const img = $('#lbImg'); if(!img) return;
+  const src = ST.lb.list[ST.lb.idx] || '';
+  img.style.transform='scale(1)';
+  img.onload = ()=> { $('#lb').classList.add('show'); };
+  img.onerror = ()=>{};
+  img.src = src;
+  $('#lbZval').textContent='100%';
 }
 
-/* ===== Modal helper ===== */
+/* ===== Modal ===== */
 function openModal(title, html){
   let m = $('#modal'); if(!m){
-    m = document.createElement('div'); m.id='modal';
+    m=document.createElement('div'); m.id='modal';
     m.innerHTML = `
-      <div class="mback"></div>
-      <div class="mbox">
-        <div class="mhead"><strong id="mtitle"></strong><button id="mclose" class="chip">✕</button></div>
-        <div class="mbody" id="mbody"></div>
+      <div class="mask"></div>
+      <div class="box">
+        <div class="head">
+          <h3 id="modalTitle"></h3>
+          <button id="modalClose" aria-label="Cerrar">✕</button>
+        </div>
+        <div id="modalBody" class="body"></div>
       </div>`;
     document.body.appendChild(m);
-    m.querySelector('.mback').onclick = closeModal;
-    $('#mclose').onclick = closeModal;
+    m.querySelector('.mask').addEventListener('click', closeModal);
+    $('#modalClose').addEventListener('click', closeModal);
   }
-  $('#mtitle').textContent = title||'';
-  $('#mbody').innerHTML = html||'';
-  m.classList.add('show');
+  $('#modalTitle').textContent=title||'';
+  $('#modalBody').innerHTML=html||'';
+  document.body.classList.add('modal-open');
 }
-function closeModal(){ $('#modal')?.classList.remove('show'); }
+function closeModal(){
+  $('#modal')?.remove();
+  document.body.classList.remove('modal-open');
+}
 
 /* ===== Tema ===== */
 function themeInit(){
-  const t = LS.get('theme','auto');
-  setTheme(t);
+  const t = LS.get('theme', 'dark');
+  document.documentElement.setAttribute('data-theme', t);
 }
 function setupThemeSwitch(){
-  $('#themeSel')?.addEventListener('change', (e)=> setTheme(e.target.value));
-}
-function setTheme(mode='auto'){
-  LS.set('theme', mode);
-  document.documentElement.dataset.theme = mode;
+  $('#themeSwitch')?.addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme', cur);
+    LS.set('theme', cur);
+  });
 }
 
-/* ===== FAB draggable ===== */
+/* ===== FAB Arrastrable ===== */
 function setupDraggableFab(){
-  const fab = $('#fab'); if(!fab) return;
-  let drag=false, sx=0, sy=0, bx=0, by=0;
-  const down = e=>{ drag=true; const t=e.touches?e.touches[0]:e; sx=t.clientX; sy=t.clientY; const r=fab.getBoundingClientRect(); bx=r.left; by=r.top; fab.classList.add('drag'); };
-  const move = e=>{
-    if(!drag) return;
-    const t=e.touches?e.touches[0]:e;
-    const dx=t.clientX-sx, dy=t.clientY-sy;
-    fab.style.left = Math.max(8, Math.min(window.innerWidth-68, bx+dx))+'px';
-    fab.style.top  = Math.max(8, Math.min(window.innerHeight-68, by+dy))+'px';
+  const fab=$('#fab'); if(!fab) return;
+  let ax=0, ay=0, dragging=false;
+  const onMove=(e)=>{
+    if(!dragging) return;
+    const t = e.touches? e.touches[0] : e;
+    fab.style.left = (t.clientX-ax)+'px';
+    fab.style.top = (t.clientY-ay)+'px';
   };
-  const up = ()=>{ drag=false; fab.classList.remove('drag'); };
-  fab.addEventListener('mousedown', down); fab.addEventListener('touchstart', down, {passive:true});
-  window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, {passive:false});
-  window.addEventListener('mouseup', up); window.addEventListener('touchend', up);
+  fab.addEventListener('mousedown',e=>{ dragging=true; ax=e.offsetX; ay=e.offsetY; document.addEventListener('mousemove', onMove); });
+  fab.addEventListener('touchstart',e=>{ dragging=true; const t=e.touches[0]; const r=fab.getBoundingClientRect(); ax=t.clientX-r.left; ay=t.clientY-r.top; document.addEventListener('touchmove', onMove); },{passive:true});
+  document.addEventListener('mouseup',()=>{ dragging=false; document.removeEventListener('mousemove', onMove); });
+  document.addEventListener('touchend',()=>{ dragging=false; document.removeEventListener('touchmove', onMove); });
 }
 
-/* ===== Utilidades varias ===== */
-function imgFallbackAll(){ $$('img').forEach(safeImg); }
+/* ===== Helpers admin restantes ===== */
+function addImgsProductoSilent(id, srcs){ const p=ST.productos.find(x=>x.id===id); if(p){ p.imgs=[...(p.imgs||[]),...srcs]; LS.set('productos',ST.productos);} }
 
-/* ====== FIN IIFE ====== */
+/* ===== Fin IIFE ===== */
 })();
