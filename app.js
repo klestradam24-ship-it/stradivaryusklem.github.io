@@ -1345,4 +1345,85 @@ function setupDraggableFab(){
 function addImgsProductoSilent(id, srcs){ const p=ST.productos.find(x=>x.id===id); if(p){ p.imgs=[...(p.imgs||[]),...srcs]; LS.set('productos',ST.productos);} }
 
 /* ===== Fin IIFE ===== */
+  /* ===== Estética extra: ripple, tilt, reveal y header shadow ===== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  initAesthetics();
+});
+
+function initAesthetics(){
+  enableHeaderShadowOnScroll();
+  enableScrollReveal();
+  enhanceButtonsWithRipple();
+  enableTiltOnCards();
+}
+
+/* Sombra en header al hacer scroll */
+function enableHeaderShadowOnScroll(){
+  const header = document.querySelector('.header');
+  if(!header) return;
+  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 4);
+  onScroll(); window.addEventListener('scroll', onScroll, {passive:true});
+}
+
+/* Scroll-reveal para .card y .item */
+function enableScrollReveal(){
+  const els = [...document.querySelectorAll('.card, .item, .reveal')];
+  if(!els.length) return;
+  els.forEach(el=> el.classList.add('reveal'));
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, {threshold: 0.12});
+  els.forEach(el=> io.observe(el));
+}
+
+/* Ripple en botones .btn y .chip */
+function enhanceButtonsWithRipple(){
+  const clicky = (ev)=>{
+    const el = ev.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const y = ev.clientY - rect.top;
+    el.style.setProperty('--rx', `${x}px`);
+    el.style.setProperty('--ry', `${y}px`);
+    el.classList.add('is-anim');
+    clearTimeout(el.__rt);
+    el.__rt = setTimeout(()=> el.classList.remove('is-anim'), 550);
+  };
+  document.querySelectorAll('.btn, .chip').forEach(b=>{
+    b.classList.add('ripple');
+    b.addEventListener('click', clicky);
+  });
+}
+
+/* Tilt 3D suave en .item y .card */
+function enableTiltOnCards(){
+  const cards = document.querySelectorAll('.item, .card');
+  if(!cards.length) return;
+  cards.forEach(el=>{
+    el.classList.add('tilt-3d');
+    let raf=null;
+    const onMove=(e)=>{
+      const r=el.getBoundingClientRect();
+      const cx = (e.clientX - r.left)/r.width - 0.5;
+      const cy = (e.clientY - r.top)/r.height - 0.5;
+      const rx = (cy)*6;  // X rotate
+      const ry = (-cx)*6; // Y rotate
+      cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{
+        el.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
+      });
+    };
+    const reset=()=>{ cancelAnimationFrame(raf); el.style.transform=''; };
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', reset);
+    el.addEventListener('blur', reset, true);
+  });
+}
+
 })();
+
