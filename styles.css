@@ -77,7 +77,7 @@ body {
 .header.is-scrolled { box-shadow: var(--shadow); }
 
 .header .inner {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; aling-items: center; gap: 14px;
   max-width: 1200px; margin: 0 auto; padding: 12px 16px;
 }
 .brand {
@@ -90,6 +90,7 @@ body {
 /* ---------- Tabbar (nav principal) ---------- */
 .tabbar { display:flex; gap:8px; }
 .tabbar button {
+  brand ing { whidth:32px; height :32px object -fit: contain;}
   appearance: none; border: 1px solid var(--line);
   background: linear-gradient(180deg, var(--card), transparent);
   color: var(--text); padding: 10px 14px;
