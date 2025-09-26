@@ -288,6 +288,7 @@
     $('#adminPanel').classList.remove('hidden');
     $('#taxInput').value = ST.tax;
     $('#tabAdmin').classList.remove('hidden');
+    remoteSaveDebounced(); // 🔄 publica snapshot completo al entrar como admin
 
     // Botón logout (inyectado una vez)
     const row = $('#adminQuickRow');
@@ -524,7 +525,38 @@
         </div>
       </article>`;
   }
-  function toggleVendido(id){ const p = ST.productos.find(x=>x.id===id); if(!p) return; p.vendido = !p.vendido; LS.set('productos', ST.productos); renderProductosCliente(); renderProductosAdmin(); }
+  function toggleVendido(id){
+  const p = ST.productos.find(x=>x.id===id); if(!p) return;
+  p.vendido = !p.vendido;
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar a la nube
+}
+
+function addImgsProducto(id, imgs){
+  const p = ST.productos.find(x=>x.id===id); if(!p) return;
+  p.imgs = [...(p.imgs||[]), ...imgs];
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
+function delImgProducto(id, idx){
+  const p = ST.productos.find(x=>x.id===id); if(!p) return;
+  p.imgs.splice(idx,1);
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
+function delProducto(id){
+  if(!confirm('¿Eliminar producto completo?')) return;
+  ST.productos = ST.productos.filter(x=>x.id!==id);
+  LS.set('productos', ST.productos);
+  renderProductosCliente(); renderProductosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
   function openFormProducto(){
     openModal('Nuevo producto', `
       <form id="fProd" class="form">
@@ -692,9 +724,31 @@
       remoteSaveDebounced();
     });
   }
-  function addImgsProyecto(id, imgs){ const p = ST.proyectos.find(x=>x.id===id); if(!p) return; p.imgs = [...(p.imgs||[]), ...imgs]; LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
-  function delImgProyecto(id, idx){ const p = ST.proyectos.find(x=>x.id===id); if(!p) return; p.imgs.splice(idx,1); LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
-  function delProyecto(id){ if(!confirm('¿Eliminar proyecto completo?')) return; ST.proyectos = ST.proyectos.filter(x=>x.id!==id); LS.set('proyectos', ST.proyectos); renderProyectosCliente(); renderProyectosAdmin(); }
+  function addImgsProyecto(id, imgs){
+  const p = ST.proyectos.find(x=>x.id===id); if(!p) return;
+  p.imgs = [...(p.imgs||[]), ...imgs];
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
+function delImgProyecto(id, idx){
+  const p = ST.proyectos.find(x=>x.id===id); if(!p) return;
+  p.imgs.splice(idx,1);
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
+function delProyecto(id){
+  if(!confirm('¿Eliminar proyecto completo?')) return;
+  ST.proyectos = ST.proyectos.filter(x=>x.id!==id);
+  LS.set('proyectos', ST.proyectos);
+  renderProyectosCliente(); renderProyectosAdmin();
+  remoteSaveDebounced(); // 🔄 publicar
+}
+
+ 
 
   /* ===== Carrito ===== */
   function initCarrito(){
@@ -870,6 +924,7 @@
     ST.carrito=[]; LS.set('carrito',ST.carrito); renderCarrito();
     pintarRecibo(venta); pintarVentas(); pintarClientes(); pintarClientesDir();
     renderProductosCliente(); renderProductosAdmin();
+    remoteSaveDebounced(); // 🔄 publica productos vendidos
 
     track('purchase', {value: tot, tax: imp, currency: 'USD', items: venta.items.map(i=>({id:i.id,name:i.n,price:i.p,quantity:i.c}))});
     toast('Compra registrada');
