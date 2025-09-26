@@ -1,85 +1,74 @@
-/* sw.js – Stradivaryus Tools (estable) */
-const SW_VERSION   = 'v3.1.0';
-const STATIC_CACHE = `static-${SW_VERSION}`;
-const RUNTIME_CACHE= `runtime-${SW_VERSION}`;
+/* === Service Worker: Stradivaryus Tools ===
+   Estrategia: "Stale-While-Revalidate" para recursos del mismo origen.
+   Cachea shell + íconos + manifest para que se vean los íconos offline.
+*/
 
+const CACHE_NAME = "st-cache-v1";
 const CORE_ASSETS = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './logo.png',
-  './logoklem.png',
-  './og-cover.jpg',
-  './qr-zelle.png',
-  './muro/1.jpg',
-  './muro/2.jpg',
-  './muro/3.jpg',
-  './venta/1.jpg',
-  './proyect1/1.jpg'
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./manifest.webmanifest",
+
+  // Íconos PWA
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/maskable-192.png",
+  "./icons/maskable-512.png",
+
+  // Imágenes base que usa tu app (ajusta según tengas)
+  "./muro/1.jpg",
+  "./muro/2.jpg",
+  "./muro/3.jpg",
+  "./venta/1.jpg",
+  "./proyect1/1.jpg",
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => cache.addAll(CORE_ASSETS))
-      .then(() => self.skipWaiting())
+/* Instalación: precache */
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter(k => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
-          .map(k => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+/* Activación: limpia versiones viejas */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then(async (keys) => {
+      await Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)));
+    })
   );
+  self.clients.claim();
 });
 
-/* SWR + fallback SPA */
-self.addEventListener('fetch', (e) => {
-  const { request } = e;
-  if (request.method !== 'GET') return;
+/* Fetch: Stale-While-Revalidate para el mismo origen */
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
 
-  // Navegación -> devolver index.html (SPA)
-  if (request.mode === 'navigate') {
-    e.respondWith(
-      caches.match('./index.html', { cacheName: STATIC_CACHE }).then((cached) =>
-        cached ||
-        fetch('./index.html').then((resp) => {
-          const copy = resp.clone();
-          caches.open(STATIC_CACHE).then((c) => c.put('./index.html', copy));
-          return resp;
+  // Solo manejamos peticiones GET del mismo origen
+  const sameOrigin = new URL(req.url).origin === self.location.origin;
+  if (req.method !== "GET" || !sameOrigin) return;
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const networkFetch = fetch(req)
+        .then((res) => {
+          // Guarda en cache una copia si es válido
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          return res;
         })
-      )
-    );
-    return;
-  }
+        .catch(() => {
+          // Fallbacks básicos
+          if (req.destination === "document") return caches.match("./index.html");
+          if (req.destination === "image") return caches.match("./venta/1.jpg");
+          return cached || new Response("", { status: 200 });
+        });
 
-  // Stale-While-Revalidate para el resto
-  e.respondWith(
-    caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request)
-        .then((networkResp) => {
-          // Evitar caché de respuestas opacas/errores
-          if (!networkResp || networkResp.status !== 200 || networkResp.type === 'opaque') {
-            return networkResp;
-          }
-          const copy = networkResp.clone();
-          const isSameOrigin = new URL(request.url).origin === location.origin;
-          caches.open(isSameOrigin ? STATIC_CACHE : RUNTIME_CACHE)
-                .then((cache) => cache.put(request, copy));
-          return networkResp;
-        })
-        .catch(() => cached); // offline -> caché si existe
-
-      return cached || fetchPromise;
+      // Devuelve cache rápido y actualiza en segundo plano
+      return cached || networkFetch;
     })
   );
 });
