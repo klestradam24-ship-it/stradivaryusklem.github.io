@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <base href="./">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stradivaryus Tools</title>
+  <title>Stradivaryus Tools — Next</title>
 
   <!-- Fuentes + estilos -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,7 +13,12 @@
 
   <!-- Manifest PWA + Theme -->
   <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#0f1420">
+<meta name="theme-color" content="#0f1420">
+
+<!-- Favicon / Apple Touch (opcional pero recomendado) -->
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
 
   <!-- SEO/OG básico -->
   <meta name="description" content="Herramientas, proyectos y servicios en Cincinnati. Ventas, instalación y presupuestos al instante.">
@@ -43,7 +48,7 @@
   <!-- AppBar -->
   <header class="appbar">
     <div class="appbar-left">
-      <img src="logo.png" class="logo" alt="Stradivaryus"/>
+      <img src="logoklem.png" class="logo" alt="Stradivaryus"/>
       <div>
         <h1>Stradivaryus Tools</h1>
         <p class="tag">El Rincón de tus Herramientas</p>
@@ -192,7 +197,7 @@
       <!-- Acceso -->
       <div id="adminGate" class="card">
         <div class="row">
-          <input id="adminPass" type="password" class="input" placeholder="Contraseña (5536 cliente)">
+          <input id="adminPass" type="password" class="input" placeholder="Contraseña (5536)">
           <button id="adminEnter" class="btn primary">Ingresar</button>
         </div>
       </div>
@@ -370,6 +375,10 @@
   </div>
 
   <footer class="footer">© <span id="yy"></span> Stradivaryus Tools</footer>
+<!-- Firebase SDK (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 
   <script src="app.js" defer></script>
   <script>
