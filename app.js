@@ -1,4 +1,3 @@
-<script>
 (() => {
   /* ===== Helpers ===== */
   const $ = (s, r = document) => r.querySelector(s);
@@ -242,6 +241,7 @@
 
   /* ===== Cliente: libre (sin gate) ===== */
   function setupCliente() {
+    // libre por diseño
     subGo('productos');
   }
 
@@ -259,6 +259,7 @@
       loginBox?.classList.remove('hidden');
     }
 
+    // Crear primera clave
     $('#adminSetFirst')?.addEventListener('click', async () => {
       const np = $('#adminNewFirst')?.value.trim();
       if (!np || np.length < 3) return alert('Mínimo 3 caracteres');
@@ -270,9 +271,11 @@
       $('#adminNewFirst').value = '';
     });
 
+    // Login
     $('#adminEnter')?.addEventListener('click', adminLogin);
     $('#adminPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') adminLogin(); });
 
+    // Quick actions
     $('#taxSave')?.addEventListener('click', () => {
       ST.tax = Number($('#taxInput')?.value || 0);
       LS.set('taxRate', ST.tax);
@@ -358,6 +361,7 @@
     $('#taxInput').value = ST.tax;
     $('#tabAdmin')?.classList.remove('hidden');
 
+    // Logout card dinámico
     const row = $('#adminQuickRow');
     if (row && !$('#btnLogout')) {
       const card = document.createElement('div');
@@ -923,6 +927,7 @@
     $('#montoEfectivo')?.classList.toggle('hidden', v !== 'efectivo');
     $('#qrBox')?.classList.toggle('hidden', v !== 'zelle');
 
+    // PayPal
     const paypalBox = $('#paypalBox');
     paypalBox?.classList.toggle('hidden', v !== 'paypal');
     if (v === 'paypal') renderPayPalButtons();
@@ -1041,7 +1046,7 @@
     }
     const box = $('#paypalButtons');
     if (!box) return;
-    box.innerHTML = '';
+    box.innerHTML = ''; // limpiar si renderiza de nuevo
 
     const total = Number($('#totTxt').textContent || '0');
     if (total <= 0) {
@@ -1059,7 +1064,7 @@
         try {
           const details = await actions.order.capture();
           ST.paypalTxn = details?.id || 'PAYPAL';
-          pagar(true);
+          pagar(true); // finalizar venta con bandera de que ya se pagó por PayPal
         } catch (e) {
           console.error(e);
           alert('No se pudo capturar el pago de PayPal.');
@@ -1104,6 +1109,7 @@
       if (ent < tot) return alert('Efectivo insuficiente');
     }
 
+    // Registrar venta
     const venta = {
       id: 'V' + String(ST.folio).padStart(5, '0'),
       fecha: new Date().toLocaleString(),
@@ -1546,6 +1552,5 @@
   function closeModal() { $('#modal')?.classList.add('hidden'); }
 
   /* ===== Utils extra ===== */
-  function shareFile() { return false; } // no-op
+  function shareFile() { return false; } // no-op en esta versión
 })();
-</script>
