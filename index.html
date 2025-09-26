@@ -14,6 +14,8 @@
   <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#0f1420">
+
+  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Stradivaryus">
@@ -36,7 +38,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" defer></script>
 
   <!-- DOMPurify (sanitizado) -->
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+  <!-- PayPal SDK (sandbox “sb”). Cambia client-id por el tuyo en producción -->
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD" defer></script>
 </head>
 <body>
   <!-- Fondo animado -->
@@ -59,8 +64,10 @@
         <option value="proyectos">Proyectos</option>
       </select>
       <button id="btnSearch" class="chip">🔎</button>
-      <!-- Solo dejamos Admin, el resto se retiró sin romper flujos -->
-      <button id="btnLogin" class="chip">🔐 Admin</button>
+      <button id="btnTheme" class="chip" aria-label="Cambiar tema">🖥️</button>
+      <button id="btnLegal" class="chip" aria-label="Información legal">⚖️ Legal</button>
+      <button id="btnContactar" class="chip">📞 Contactar</button>
+      <button id="btnLogin" class="chip" data-go="admin">🛠️ Admin</button>
     </div>
   </header>
 
@@ -76,41 +83,35 @@
   <main id="main">
     <!-- ======== CLIENTE ======== -->
     <section id="view-cliente" class="view show">
-      <!-- Gate -->
-      <div id="clienteGate" class="card">
-        <h2>Área de Cliente</h2>
-        <p class="muted">Ingresa la contraseña para ver catálogo, carrito, proyectos, contacto y legal.</p>
-        <div class="row">
-          <input id="clientePass" type="password" class="input" placeholder="Contraseña (client)"/>
-          <button id="clienteEnter" class="btn primary">Entrar</button>
-        </div>
-        <p class="muted" id="clienteDebug" style="margin-top:6px"></p>
-      </div>
-
-      <!-- Subtab -->
-      <div id="subtabCliente" class="row wrap hidden">
-        <button class="chip" data-subgo="productos">🧰 Productos</button>
+      <!-- Subtabs cliente -->
+      <div id="subtabCliente" class="row wrap">
+        <button class="chip active" data-subgo="productos">🧰 Productos</button>
         <button class="chip" data-subgo="carrito">🛒 Carrito</button>
         <button class="chip" data-subgo="proyectos">🏗️ Proyectos</button>
         <button class="chip" data-subgo="contacto">📞 Contacto</button>
         <button class="chip" data-subgo="legal">⚖️ Legal</button>
       </div>
 
-      <!-- Mount de vistas cliente -->
+      <!-- Mount de vistas -->
       <div id="clienteViewsMount">
-        <section id="view-productos" class="view">
+        <!-- Productos -->
+        <section id="view-productos" class="view show">
           <div class="view-head"><h2>Herramientas</h2></div>
           <div id="gridProductos" class="grid cards"></div>
         </section>
 
+        <!-- Carrito -->
         <section id="view-carrito" class="view">
           <div class="view-head"><h2>Carrito</h2></div>
+
           <div class="card">
             <div class="row wrap">
               <select id="clienteSel" class="input" aria-label="Seleccionar cliente"></select>
               <button class="chip" id="btnAddCliente">➕ Cliente</button>
             </div>
+
             <ul id="listaCarrito" class="list"></ul>
+
             <div class="total">
               <div>
                 <div>Subtotal: $<span id="subTxt">0.00</span></div>
@@ -119,6 +120,7 @@
               <strong>Total $<span id="totTxt">0.00</span></strong>
             </div>
           </div>
+
           <div class="card">
             <h3>Pago</h3>
             <div class="row wrap">
@@ -126,23 +128,35 @@
                 <option value="">-- Seleccionar --</option>
                 <option value="efectivo">Efectivo</option>
                 <option value="zelle">Zelle</option>
+                <option value="paypal">PayPal</option>
               </select>
+
               <input id="montoEfectivo" type="number" class="input hidden" min="0" step="0.01" placeholder="Monto entregado">
               <button id="btnPagar" class="btn primary">Pagar</button>
             </div>
+
+            <!-- Zelle -->
             <div id="qrBox" class="qr hidden">
               <img src="qr-zelle.png" alt="QR Zelle">
               <div class="muted">Email Zelle: tuemail@zelle.com</div>
             </div>
+
+            <!-- PayPal -->
+            <div id="paypalBox" class="hidden" style="margin-top:10px;">
+              <div id="paypalButtons"></div>
+            </div>
           </div>
+
           <div id="reciboBox" class="card hidden" aria-live="polite"></div>
         </section>
 
+        <!-- Proyectos -->
         <section id="view-proyectos" class="view">
           <div class="view-head"><h2>Proyectos</h2></div>
           <div id="gridProyectos" class="grid cards"></div>
         </section>
 
+        <!-- Contacto -->
         <section id="view-contacto" class="view">
           <div class="view-head"><h2>Contacto</h2></div>
           <div class="card">
@@ -152,11 +166,15 @@
             <p><strong>Email:</strong> <a href="mailto:info@stradivaryus.com">info@stradivaryus.com</a></p>
             <p><a href="mailto:kestradam@icloud.com">kestradam26@icloud.com</a></p>
             <div class="map-wrap" style="height:280px; border-radius:14px; overflow:hidden; border:1px solid var(--line);">
-              <iframe src="https://www.google.com/maps/embed?pb=!1m18!..." width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa de ubicación"></iframe>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d198858.73617515213!2d-84.69539332078124!3d39.13602445936173!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8841b277f3d6bdf7%3A0x2a0d7b5a2d0f0db8!2sCincinnati%2C%20OH!5e0!3m2!1ses!2sus!4v1690000000000"
+                width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade" title="Mapa de ubicación"></iframe>
             </div>
           </div>
         </section>
 
+        <!-- Legal -->
         <section id="view-legal" class="view">
           <div class="view-head"><h2>Información Legal (Ohio, EE. UU.)</h2></div>
           <div class="card">
@@ -164,18 +182,21 @@
               Contenido informativo basado en prácticas habituales del Ohio Revised Code (ORC).
               <strong>No constituye asesoría legal</strong>.
             </p>
+
             <details open>
               <summary><strong>Términos y Condiciones</strong></summary>
               <div class="legal">
-                <p><strong>Entidad:</strong> Stradivaryus Tools (“la Empresa”). <strong>Jurisdicción:</strong> Ohio, EE. UU. <strong>Foro:</strong> Hamilton County.</p>
+                <p><strong>Entidad:</strong> Stradivaryus Tools (“la Empresa”).
+                   <strong>Jurisdicción:</strong> Ohio, EE. UU. <strong>Foro:</strong> Hamilton County.</p>
                 <ul>
                   <li><strong>Precios e impuestos:</strong> USD. Sales & Use Tax conforme ORC cap. 5739.</li>
-                  <li><strong>Pedidos y pago:</strong> Pedido aceptado al confirmarse el pago (efectivo o Zelle).</li>
+                  <li><strong>Pedidos y pago:</strong> Pedido aceptado al confirmarse el pago (efectivo, Zelle o PayPal).</li>
                   <li><strong>Garantías:</strong> Las del fabricante salvo pacto escrito adicional.</li>
                   <li><strong>Responsabilidad:</strong> Limitada al monto pagado.</li>
                 </ul>
               </div>
             </details>
+
             <details>
               <summary><strong>Privacidad</strong></summary>
               <div class="legal">
@@ -187,6 +208,7 @@
                 </ul>
               </div>
             </details>
+
             <p class="muted">Vigencia: <span id="legalDate"></span> · Sede: Cincinnati, Ohio</p>
           </div>
         </section>
@@ -197,7 +219,7 @@
     <section id="view-admin" class="view">
       <div class="view-head"><h2>Panel Admin</h2></div>
 
-      <!-- Acceso / Setup -->
+      <!-- Gate / Setup -->
       <div id="adminGate" class="card">
         <div id="adminFirstSetup" class="hidden">
           <h3>Configurar contraseña de Admin</h3>
@@ -275,10 +297,12 @@
               <button class="btn primary" id="presPDF">📄 PDF</button>
             </div>
           </div>
+
           <div class="row wrap">
             <input id="presCliente" class="input" placeholder="👤 Cliente">
             <input id="presProyecto" class="input" placeholder="🏗️ Proyecto">
           </div>
+
           <div class="table-wrap">
             <table id="presTable">
               <thead><tr><th>Material</th><th>Cant</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
@@ -303,10 +327,6 @@
             <div class="row">
               <input id="passNew" type="password" class="input" placeholder="Nueva clave Admin">
               <button id="passSave" class="btn">Cambiar</button>
-            </div>
-            <div class="row wrap" style="gap:8px; margin-top:8px">
-              <input id="clientKeyNew" class="input" placeholder="Nueva clave cliente (default: client)">
-              <button id="clientKeySave" class="btn">Guardar clave cliente</button>
             </div>
           </div>
           <!-- Card de sesión y de backup se inyectan por JS -->
@@ -339,7 +359,7 @@
           </div>
         </div>
 
-        <!-- Directorio -->
+        <!-- Directorio de Clientes -->
         <div class="card">
           <div class="card-head"><h3>Directorio de Clientes (registrados)</h3></div>
           <div class="table-wrap">
@@ -372,7 +392,7 @@
     <button data-go="admin" id="tabAdmin">🛠️<span>Admin</span></button>
   </nav>
 
-  <!-- Botón flotante de llamada -->
+  <!-- Botón flotante de llamada (solo móvil en CSS) -->
   <a href="tel:+15133790469" class="fab">📞</a>
 
   <!-- Lightbox -->
