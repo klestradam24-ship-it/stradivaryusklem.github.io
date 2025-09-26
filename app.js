@@ -1,3 +1,4 @@
+<script>
 (() => {
   /* ===== Helpers ===== */
   const $ = (s, r = document) => r.querySelector(s);
@@ -241,7 +242,6 @@
 
   /* ===== Cliente: libre (sin gate) ===== */
   function setupCliente() {
-    // nada que hacer: cliente está libre por diseño solicitado
     subGo('productos');
   }
 
@@ -251,7 +251,6 @@
     const loginBox = $('#adminLoginBox');
     const firstSetup = $('#adminFirstSetup');
 
-    // Primer arranque: pedir crear clave Admin (solo una vez)
     if (!adminHash) {
       firstSetup?.classList.remove('hidden');
       loginBox?.classList.add('hidden');
@@ -260,7 +259,6 @@
       loginBox?.classList.remove('hidden');
     }
 
-    // Crear primera clave
     $('#adminSetFirst')?.addEventListener('click', async () => {
       const np = $('#adminNewFirst')?.value.trim();
       if (!np || np.length < 3) return alert('Mínimo 3 caracteres');
@@ -272,11 +270,9 @@
       $('#adminNewFirst').value = '';
     });
 
-    // Login
     $('#adminEnter')?.addEventListener('click', adminLogin);
     $('#adminPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') adminLogin(); });
 
-    // Quick actions
     $('#taxSave')?.addEventListener('click', () => {
       ST.tax = Number($('#taxInput')?.value || 0);
       LS.set('taxRate', ST.tax);
@@ -362,7 +358,6 @@
     $('#taxInput').value = ST.tax;
     $('#tabAdmin')?.classList.remove('hidden');
 
-    // Logout
     const row = $('#adminQuickRow');
     if (row && !$('#btnLogout')) {
       const card = document.createElement('div');
@@ -928,10 +923,9 @@
     $('#montoEfectivo')?.classList.toggle('hidden', v !== 'efectivo');
     $('#qrBox')?.classList.toggle('hidden', v !== 'zelle');
 
-    // PayPal
     const paypalBox = $('#paypalBox');
     paypalBox?.classList.toggle('hidden', v !== 'paypal');
-    if (v === 'paypal') renderPayPalButtons(); // prepara botones
+    if (v === 'paypal') renderPayPalButtons();
   }
   function renderClientesSel() {
     if (!ST.clientes.length) {
@@ -1047,7 +1041,7 @@
     }
     const box = $('#paypalButtons');
     if (!box) return;
-    box.innerHTML = ''; // limpiar si renderiza de nuevo
+    box.innerHTML = '';
 
     const total = Number($('#totTxt').textContent || '0');
     if (total <= 0) {
@@ -1065,7 +1059,7 @@
         try {
           const details = await actions.order.capture();
           ST.paypalTxn = details?.id || 'PAYPAL';
-          pagar(true); // finalizar venta con bandera de que ya se pagó por PayPal
+          pagar(true);
         } catch (e) {
           console.error(e);
           alert('No se pudo capturar el pago de PayPal.');
@@ -1097,7 +1091,6 @@
 
     if (metodo === 'paypal') {
       if (!alreadyPaidByPayPal) {
-        // Si el usuario presionó "Pagar" sin usar el botón PayPal, mostramos el módulo.
         renderPayPalButtons();
         $('#paypalBox')?.classList.remove('hidden');
         toast('Completa el pago en los botones de PayPal ↘');
@@ -1111,7 +1104,6 @@
       if (ent < tot) return alert('Efectivo insuficiente');
     }
 
-    // Registrar venta
     const venta = {
       id: 'V' + String(ST.folio).padStart(5, '0'),
       fecha: new Date().toLocaleString(),
@@ -1554,5 +1546,6 @@
   function closeModal() { $('#modal')?.classList.add('hidden'); }
 
   /* ===== Utils extra ===== */
-  function shareFile() { return false; } // no-op en esta versión
+  function shareFile() { return false; } // no-op
 })();
+</script>
