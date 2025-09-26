@@ -1,384 +1,323 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <base href="./">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stradivaryus Tools</title>
+  <meta name="theme-color" content="#0f1420" />
 
-  <!-- Fuentes -->
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- SEO básico/OG (el JSON-LD lo inyecta app.js) -->
+  <meta name="description" content="Catálogo de herramientas, proyectos y servicios en Cincinnati. Ventas, instalación y presupuestos al instante.">
 
-  <!-- PWA -->
+  <!-- App styles -->
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- Manifest PWA -->
   <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#0f1420">
 
-  <!-- iOS PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Stradivaryus">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png"/>
-
-  <!-- SEO/OG -->
-  <meta name="description" content="Herramientas, proyectos y servicios en Cincinnati. Ventas, instalación y presupuestos al instante.">
-  <meta property="og:title" content="Stradivaryus Tools"/>
-  <meta property="og:description" content="Catálogo de herramientas y proyectos. Presupuestos en PDF. Contacto rápido."/>
-  <meta property="og:image" content="./og-cover.jpg"/>
-  <meta property="og:type" content="website"/>
-  <meta property="og:url" content="./"/>
-  <meta name="twitter:card" content="summary_large_image"/>
-
-  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- jsPDF/AutoTable (PDF presupuestos) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" defer></script>
-
-  <!-- DOMPurify (sanitizado) -->
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-
-  <!-- PayPal SDK (sandbox “sb”). Cambia client-id por el tuyo en producción -->
-  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD" defer></script>
+  <!-- Icono -->
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
 </head>
 <body>
-  <!-- Fondo animado -->
   <canvas id="bg" aria-hidden="true"></canvas>
 
   <!-- AppBar -->
   <header class="appbar">
     <div class="appbar-left">
-      <img src="logo.png" class="logo" alt="Stradivaryus"/>
+      <img class="logo" src="logo.png" alt="Stradivaryus" />
       <div>
         <h1>Stradivaryus Tools</h1>
         <p class="tag">El Rincón de tus Herramientas</p>
       </div>
     </div>
     <div class="appbar-right">
-      <input id="searchBox" class="input sm" placeholder="Buscar...">
-      <select id="searchCat" class="input sm">
-        <option value="">Todo</option>
-        <option value="productos">Productos</option>
-        <option value="proyectos">Proyectos</option>
-      </select>
-      <button id="btnSearch" class="chip">🔎</button>
-      <button id="btnTheme" class="chip" aria-label="Cambiar tema">🖥️</button>
-      <button id="btnLegal" class="chip" aria-label="Información legal">⚖️ Legal</button>
-      <button id="btnContactar" class="chip">📞 Contactar</button>
+      <button id="btnTheme" class="chip" title="Tema">🖥️</button>
+      <button id="btnLegal" class="chip" data-go="cliente" data-subgo="legal">⚖️ Legal</button>
+      <button id="btnContactar" class="chip" data-go="cliente" data-subgo="contacto">📞 Contactar</button>
       <button id="btnLogin" class="chip" data-go="admin">🛠️ Admin</button>
     </div>
   </header>
 
-  <!-- Hero / Muro -->
-  <section id="hero" class="hero">
-    <div class="hero-overlay"></div>
+  <!-- Hero -->
+  <section class="hero">
+    <button id="hPrev" class="hnav prev" aria-label="Anterior">‹</button>
     <div class="hero-slider" id="heroSlider"></div>
-    <div class="hero-dots" id="heroDots" aria-label="Indicadores"></div>
-    <button class="hnav prev" id="hPrev" aria-label="Anterior">❮</button>
-    <button class="hnav next" id="hNext" aria-label="Siguiente">❯</button>
+    <button id="hNext" class="hnav next" aria-label="Siguiente">›</button>
+    <div class="hero-overlay"></div>
+    <div id="heroDots" class="hero-dots"></div>
   </section>
 
-  <main id="main">
-    <!-- ======== CLIENTE ======== -->
+  <main>
+    <!-- Barra de búsqueda -->
+    <div class="card view-head">
+      <div class="row wrap">
+        <input id="searchBox" class="input" placeholder="Buscar…" />
+        <select id="searchCat" class="input sm">
+          <option value="">Todo</option>
+        </select>
+        <button id="btnSearch" class="btn">Buscar</button>
+      </div>
+      <div class="row wrap">
+        <button class="chip" data-go="cliente" data-subgo="productos">🧰 Productos</button>
+        <button class="chip" data-go="cliente" data-subgo="carrito">🛒 Carrito</button>
+        <button class="chip" data-go="cliente" data-subgo="proyectos">🏗️ Proyectos</button>
+        <button class="chip" data-go="cliente" data-subgo="contacto">📞 Contacto</button>
+        <button class="chip" data-go="cliente" data-subgo="legal">⚖️ Legal</button>
+      </div>
+    </div>
+
+    <!-- Vistas raíz -->
     <section id="view-cliente" class="view show">
-      <!-- Subtabs cliente -->
+      <!-- Subtabs -->
       <div id="subtabCliente" class="row wrap">
-        <button class="chip active" data-subgo="productos">🧰 Productos</button>
-        <button class="chip" data-subgo="carrito">🛒 Carrito</button>
-        <button class="chip" data-subgo="proyectos">🏗️ Proyectos</button>
-        <button class="chip" data-subgo="contacto">📞 Contacto</button>
-        <button class="chip" data-subgo="legal">⚖️ Legal</button>
+        <button class="chip active" data-subgo="productos">Productos</button>
+        <button class="chip" data-subgo="carrito">Carrito</button>
+        <button class="chip" data-subgo="proyectos">Proyectos</button>
+        <button class="chip" data-subgo="contacto">Contacto</button>
+        <button class="chip" data-subgo="legal">Legal</button>
       </div>
 
-      <!-- Mount de vistas -->
       <div id="clienteViewsMount">
         <!-- Productos -->
-        <section id="view-productos" class="view show">
-          <div class="view-head"><h2>Herramientas</h2></div>
-          <div id="gridProductos" class="grid cards"></div>
-        </section>
+        <div id="view-productos" class="view show">
+          <div class="grid cards" id="gridProductos"></div>
+        </div>
 
         <!-- Carrito -->
-        <section id="view-carrito" class="view">
-          <div class="view-head"><h2>Carrito</h2></div>
-
+        <div id="view-carrito" class="view">
           <div class="card">
-            <div class="row wrap">
-              <select id="clienteSel" class="input" aria-label="Seleccionar cliente"></select>
-              <button class="chip" id="btnAddCliente">➕ Cliente</button>
-            </div>
-
+            <h3>Tu carrito</h3>
             <ul id="listaCarrito" class="list"></ul>
 
-            <div class="total">
-              <div>
-                <div>Subtotal: $<span id="subTxt">0.00</span></div>
-                <div class="muted">Sales Tax <span id="taxRateTxt">5.75</span>%: $<span id="taxTxt">0.00</span></div>
-              </div>
-              <strong>Total $<span id="totTxt">0.00</span></strong>
-            </div>
-          </div>
+            <div class="total"><span>Subtotal</span> <strong>$<span id="subTxt">0.00</span></strong></div>
+            <div class="total"><span>Impuesto (<span id="taxRateTxt">0.00</span>%)</span> <strong>$<span id="taxTxt">0.00</span></strong></div>
+            <div class="total"><span>Total</span> <strong>$<span id="totTxt">0.00</span></strong></div>
 
-          <div class="card">
-            <h3>Pago</h3>
-            <div class="row wrap">
-              <select id="metodoPago" class="input" aria-label="Método de pago">
-                <option value="">-- Seleccionar --</option>
+            <div class="row wrap" style="margin-top:10px">
+              <label>Cliente:</label>
+              <select id="clienteSel" class="input"></select>
+              <button id="btnAddCliente" class="btn">➕ Registrar</button>
+            </div>
+
+            <div class="row wrap" style="margin-top:10px">
+              <label>Método:</label>
+              <select id="metodoPago" class="input">
+                <option value="">Selecciona…</option>
                 <option value="efectivo">Efectivo</option>
                 <option value="zelle">Zelle</option>
                 <option value="paypal">PayPal</option>
               </select>
 
-              <input id="montoEfectivo" type="number" class="input hidden" min="0" step="0.01" placeholder="Monto entregado">
-              <button id="btnPagar" class="btn primary">Pagar</button>
+              <input id="montoEfectivo" class="input hidden" type="number" step="0.01" placeholder="Monto recibido" />
             </div>
 
             <!-- Zelle -->
-            <div id="qrBox" class="qr hidden">
-              <img src="qr-zelle.png" alt="QR Zelle">
-              <div class="muted">Email Zelle: tuemail@zelle.com</div>
+            <div id="qrBox" class="row wrap hidden" style="margin-top:10px">
+              <img src="qr-zelle.png" alt="QR Zelle" style="width:140px;height:auto;border-radius:12px;border:1px solid var(--line)" />
+              <div class="muted">Envía por Zelle y guarda el ID de transacción.</div>
             </div>
 
             <!-- PayPal -->
-            <div id="paypalBox" class="hidden" style="margin-top:10px;">
+            <div id="paypalBox" class="hidden" style="margin-top:10px">
               <div id="paypalButtons"></div>
+            </div>
+
+            <div class="row" style="margin-top:12px">
+              <button id="btnPagar" class="btn primary">Pagar</button>
             </div>
           </div>
 
           <div id="reciboBox" class="card hidden" aria-live="polite"></div>
-        </section>
+        </div>
 
         <!-- Proyectos -->
-        <section id="view-proyectos" class="view">
-          <div class="view-head"><h2>Proyectos</h2></div>
-          <div id="gridProyectos" class="grid cards"></div>
-        </section>
+        <div id="view-proyectos" class="view">
+          <div class="grid cards" id="gridProyectos"></div>
+        </div>
 
         <!-- Contacto -->
-        <section id="view-contacto" class="view">
-          <div class="view-head"><h2>Contacto</h2></div>
+        <div id="view-contacto" class="view">
           <div class="card">
-            <p>Para más información:</p>
-            <p><strong>Teléfono:</strong> <a href="tel:+15133790469">+1 513 379 0469</a></p>
-            <p>Horario: L–V · 9:00 AM – 5:00 PM</p>
-            <p><strong>Email:</strong> <a href="mailto:info@stradivaryus.com">info@stradivaryus.com</a></p>
-            <p><a href="mailto:kestradam@icloud.com">kestradam26@icloud.com</a></p>
-            <div class="map-wrap" style="height:280px; border-radius:14px; overflow:hidden; border:1px solid var(--line);">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d198858.73617515213!2d-84.69539332078124!3d39.13602445936173!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8841b277f3d6bdf7%3A0x2a0d7b5a2d0f0db8!2sCincinnati%2C%20OH!5e0!3m2!1ses!2sus!4v1690000000000"
-                width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade" title="Mapa de ubicación"></iframe>
+            <h3>Contacto</h3>
+            <p class="muted">Tel: +1 513-379-0469 · Email: info@stradivaryus.com</p>
+            <div class="map-wrap">
+              <iframe title="mapa" src="https://www.openstreetmap.org/export/embed.html?bbox=-84.55%2C39.1%2C-84.35%2C39.25&amp;layer=mapnik"
+                      style="width:100%;height:300px;border:0"></iframe>
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- Legal -->
-        <section id="view-legal" class="view">
-          <div class="view-head"><h2>Información Legal (Ohio, EE. UU.)</h2></div>
-          <div class="card">
-            <p class="muted" style="margin-top:0">
-              Contenido informativo basado en prácticas habituales del Ohio Revised Code (ORC).
-              <strong>No constituye asesoría legal</strong>.
-            </p>
-
+        <div id="view-legal" class="view">
+          <div class="card legal">
+            <h3>Aviso Legal</h3>
+            <p class="muted">Última actualización: <span id="legalDate"></span></p>
             <details open>
-              <summary><strong>Términos y Condiciones</strong></summary>
-              <div class="legal">
-                <p><strong>Entidad:</strong> Stradivaryus Tools (“la Empresa”).
-                   <strong>Jurisdicción:</strong> Ohio, EE. UU. <strong>Foro:</strong> Hamilton County.</p>
-                <ul>
-                  <li><strong>Precios e impuestos:</strong> USD. Sales & Use Tax conforme ORC cap. 5739.</li>
-                  <li><strong>Pedidos y pago:</strong> Pedido aceptado al confirmarse el pago (efectivo, Zelle o PayPal).</li>
-                  <li><strong>Garantías:</strong> Las del fabricante salvo pacto escrito adicional.</li>
-                  <li><strong>Responsabilidad:</strong> Limitada al monto pagado.</li>
-                </ul>
-              </div>
+              <summary>Condiciones</summary>
+              <ul>
+                <li>Los precios pueden cambiar sin previo aviso.</li>
+                <li>Garantía según fabricante.</li>
+                <li>Para devoluciones conservar recibo.</li>
+              </ul>
             </details>
-
-            <details>
-              <summary><strong>Privacidad</strong></summary>
-              <div class="legal">
-                <ul>
-                  <li><strong>Datos:</strong> nombre, teléfono, empresa, correo.</li>
-                  <li><strong>Base legal:</strong> contrato e interés legítimo.</li>
-                  <li><strong>Conservación:</strong> por fines contables/legales.</li>
-                  <li><strong>Derechos:</strong> en <a href="mailto:info@stradivaryus.com">info@stradivaryus.com</a>.</li>
-                </ul>
-              </div>
-            </details>
-
-            <p class="muted">Vigencia: <span id="legalDate"></span> · Sede: Cincinnati, Ohio</p>
           </div>
-        </section>
+        </div>
       </div>
     </section>
 
-    <!-- ======== ADMIN ======== -->
+    <!-- ===== ADMIN ===== -->
     <section id="view-admin" class="view">
-      <div class="view-head"><h2>Panel Admin</h2></div>
-
-      <!-- Gate / Setup -->
       <div id="adminGate" class="card">
-        <div id="adminFirstSetup" class="hidden">
-          <h3>Configurar contraseña de Admin</h3>
-          <div class="row">
-            <input id="adminNewFirst" type="password" class="input" placeholder="Nueva contraseña (mín. 3)">
+        <div id="adminFirstSetup" class="">
+          <h3>Configurar clave de Admin</h3>
+          <div class="row wrap">
+            <input id="adminNewFirst" class="input" type="password" placeholder="Nueva clave (mínimo 3)" />
             <button id="adminSetFirst" class="btn primary">Guardar</button>
           </div>
+          <p class="muted">Si necesitas resetear, abre <code>?resetadmin=1</code> en la URL.</p>
         </div>
 
-        <div id="adminLoginBox">
-          <div class="row">
-            <input id="adminPass" type="password" class="input" placeholder="Contraseña Admin">
-            <button id="adminEnter" class="btn primary">Ingresar</button>
+        <div id="adminLoginBox" class="hidden">
+          <h3>Iniciar sesión</h3>
+          <div class="row wrap">
+            <input id="adminPass" class="input" type="password" placeholder="Clave" />
+            <button id="adminEnter" class="btn primary">Entrar</button>
           </div>
-          <p class="muted">¿Olvidaste la clave? Abre <code>?resetadmin=1</code> en la URL para reiniciar y crear una nueva.</p>
         </div>
       </div>
 
-      <!-- Panel -->
       <div id="adminPanel" class="hidden">
-        <!-- Muro -->
+        <div class="card">
+          <div class="row wrap" id="adminQuickRow">
+            <div class="card mini">
+              <h3>Impuestos / Clave</h3>
+              <div class="row wrap">
+                <label>Sales Tax %</label>
+                <input id="taxInput" class="input sm" type="number" step="0.01" value="0" style="width:120px" />
+                <button id="taxSave" class="btn">Guardar</button>
+              </div>
+              <div class="row wrap" style="margin-top:8px">
+                <input id="passNew" class="input sm" type="password" placeholder="Nueva clave" />
+                <button id="passSave" class="btn">Cambiar clave</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero admin -->
         <div class="card">
           <div class="card-head">
-            <h3>Muro / Portada</h3>
+            <h3>Muro (Hero)</h3>
             <div class="row wrap">
-              <label class="btn ghost">📥 Agregar imágenes al Muro
-                <input type="file" id="importHero" accept="image/*" multiple hidden>
+              <label class="btn ghost">📥 Importar
+                <input id="importHero" type="file" accept="image/*" multiple hidden />
               </label>
-              <button id="clearHero" class="btn danger">Vaciar Muro</button>
+              <button id="clearHero" class="btn danger">Vaciar muro</button>
             </div>
           </div>
           <div id="gridHeroAdmin" class="thumbs"></div>
-          <p class="muted" style="margin-top:6px">💡 Arrastra las miniaturas para reordenar el slider.</p>
         </div>
 
-        <!-- Productos (Admin) -->
+        <!-- Productos admin -->
         <div class="card">
           <div class="card-head">
-            <h3>Productos (galerías)</h3>
+            <h3>Productos</h3>
             <div class="row wrap">
-              <button id="addProducto" class="btn">➕ Producto</button>
-              <label class="btn ghost">📥 Importar imágenes
-                <input type="file" id="importProductos" accept="image/*" multiple hidden>
+              <button id="addProducto" class="btn">➕ Nuevo</button>
+              <label class="btn ghost">📥 Importar por lotes
+                <input id="importProductos" type="file" accept="image/*" multiple hidden />
               </label>
             </div>
           </div>
-          <div id="gridProductosAdmin" class="grid cards admin"></div>
+          <div id="gridProductosAdmin" class="grid"></div>
         </div>
 
-        <!-- Proyectos (Admin) -->
+        <!-- Proyectos admin -->
         <div class="card">
           <div class="card-head">
-            <h3>Proyectos (galerías)</h3>
+            <h3>Proyectos</h3>
             <div class="row wrap">
-              <button id="addProyecto" class="btn">➕ Proyecto</button>
-              <label class="btn ghost">📥 Importar imágenes
-                <input type="file" id="importProyectos" accept="image/*" multiple hidden>
+              <button id="addProyecto" class="btn">➕ Nuevo</button>
+              <label class="btn ghost">📥 Importar por lotes
+                <input id="importProyectos" type="file" accept="image/*" multiple hidden />
               </label>
             </div>
           </div>
-          <div id="gridProyectosAdmin" class="grid cards admin"></div>
+          <div id="gridProyectosAdmin" class="grid"></div>
         </div>
 
-        <!-- Presupuestos -->
-        <div class="card">
-          <div class="card-head">
-            <h3>Presupuestos (Admin)</h3>
-            <div class="row wrap">
-              <button class="btn" id="rowAdd">➕ Fila</button>
-              <button class="btn" id="presCSV">⤓ CSV</button>
-              <select id="presFormat" class="input" style="max-width:140px">
-                <option value="a4" selected>PDF A4</option>
-                <option value="a5">PDF A5</option>
-              </select>
-              <button class="btn primary" id="presPDF">📄 PDF</button>
-            </div>
-          </div>
-
-          <div class="row wrap">
-            <input id="presCliente" class="input" placeholder="👤 Cliente">
-            <input id="presProyecto" class="input" placeholder="🏗️ Proyecto">
-          </div>
-
-          <div class="table-wrap">
-            <table id="presTable">
-              <thead><tr><th>Material</th><th>Cant</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
-              <tbody></tbody>
-              <tfoot><tr><td colspan="3" style="text-align:right"><strong>Total</strong></td><td id="presTotal">$0.00</td><td></td></tr></tfoot>
-            </table>
-          </div>
-        </div>
-
-        <!-- Controles rápidos + Export/Import -->
-        <div class="row wrap" id="adminQuickRow">
-          <div class="card mini">
-            <h3>Sales Tax</h3>
-            <div class="row">
-              <input id="taxInput" type="number" class="input" step="0.01" min="0" value="5.75">
-              <button id="taxSave" class="btn">Guardar</button>
-            </div>
-          </div>
-
-          <div class="card mini">
-            <h3>Seguridad</h3>
-            <div class="row">
-              <input id="passNew" type="password" class="input" placeholder="Nueva clave Admin">
-              <button id="passSave" class="btn">Cambiar</button>
-            </div>
-          </div>
-          <!-- Card de sesión y de backup se inyectan por JS -->
-        </div>
-
-        <!-- Contable -->
+        <!-- Ventas -->
         <div class="card">
           <div class="card-head">
             <h3>Ventas</h3>
-            <div class="row"><button id="clearVentas" class="btn danger">Limpiar</button></div>
+            <button id="clearVentas" class="btn danger">Borrar ventas</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Fecha</th><th>#</th><th>Cliente</th><th>Productos</th><th>Sub</th><th>Imp</th><th>Total</th><th>Método</th><th></th><th></th></tr></thead>
+              <thead>
+                <tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th>Items</th><th>Sub</th><th>Imp</th><th>Total</th><th>Método</th><th>Impr.</th><th>Borrar</th></tr>
+              </thead>
               <tbody id="tbVentas"></tbody>
             </table>
           </div>
         </div>
 
+        <!-- Clientes -->
         <div class="card">
           <div class="card-head">
-            <h3>Clientes (resumen compras)</h3>
-            <button id="clearClientes" class="btn danger">Limpiar</button>
+            <h3>Clientes (resumen)</h3>
+            <button id="clearClientes" class="btn danger">Borrar clientes</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Cliente</th><th>Compras</th><th>Total</th><th>Última</th><th></th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Compras</th><th>Total</th><th>Última</th><th>Borrar</th></tr></thead>
               <tbody id="tbClientes"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- Directorio de Clientes -->
         <div class="card">
-          <div class="card-head"><h3>Directorio de Clientes (registrados)</h3></div>
+          <div class="card-head">
+            <h3>Directorio de clientes</h3>
+          </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Nombre</th><th>Teléfono</th><th>Empresa</th><th>Email</th><th>Registrado</th><th></th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Teléfono</th><th>Empresa</th><th>Correo</th><th>Creado</th><th>Borrar</th></tr></thead>
               <tbody id="tbClientesDir"></tbody>
             </table>
           </div>
         </div>
 
+        <!-- Presupuestos -->
         <div class="card">
           <div class="card-head">
-            <h3>Presupuestos Generados</h3>
-            <button id="clearPres" class="btn danger">Limpiar</button>
+            <h3>Presupuesto</h3>
+            <div class="row wrap">
+              <select id="presFormat" class="input sm">
+                <option value="a4">A4</option>
+                <option value="letter">Letter</option>
+              </select>
+              <button id="rowAdd" class="btn">➕ Fila</button>
+              <button id="presCSV" class="btn">CSV</button>
+              <button id="presPDF" class="btn primary">PDF</button>
+              <button id="clearPres" class="btn danger">Borrar lista</button>
+            </div>
           </div>
+
+          <div class="row wrap" style="margin-bottom:8px">
+            <input id="presCliente" class="input" placeholder="Cliente" />
+            <input id="presProyecto" class="input" placeholder="Proyecto" />
+          </div>
+
           <div class="table-wrap">
-            <table>
-              <thead><tr><th>Fecha</th><th>Cliente</th><th>Proyecto</th><th>Monto</th><th></th><th></th></tr></thead>
-              <tbody id="tbPres"></tbody>
+            <table id="presTable">
+              <thead>
+              <tr><th>Material</th><th>Cant</th><th>Precio</th><th>Subtotal</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+              <tfoot>
+              <tr><td colspan="3" style="text-align:right">Total</td><td id="presTotal">$0.00</td><td></td></tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -386,51 +325,54 @@
     </section>
   </main>
 
-  <!-- Tabbar -->
+  <!-- Tabs inferiores -->
   <nav class="tabbar">
-    <button data-go="cliente" class="active">👤<span>Cliente</span></button>
-    <button data-go="admin" id="tabAdmin">🛠️<span>Admin</span></button>
+    <button data-go="cliente" class="active"><span>👤 Cliente</span></button>
+    <button data-go="admin" id="tabAdmin" class="hidden"><span>🛠️ Admin</span></button>
   </nav>
 
-  <!-- Botón flotante de llamada (solo móvil en CSS) -->
-  <a href="tel:+15133790469" class="fab">📞</a>
+  <!-- FAB -->
+  <a class="fab" href="tel:+15133790469" aria-label="Llamar">📞</a>
+
+  <!-- Footer -->
+  <footer class="footer">© 2025 Stradivaryus Tools</footer>
 
   <!-- Lightbox -->
-  <div id="lightbox" class="lightbox hidden" aria-hidden="true">
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
     <div class="lb-inner">
-      <button class="x" id="lbClose" aria-label="Cerrar">✕</button>
-      <img id="lbImg" alt="Imagen seleccionada"/>
-      <div class="lb-tip">Toca para ver</div>
-      <div class="tools">
-        <button id="zIn" class="chip">Zoom +</button>
-        <button id="zOut" class="chip">Zoom −</button>
-        <button id="zReset" class="chip">Reset</button>
-        <button id="openNew" class="chip">Abrir</button>
+      <button id="lbClose" class="x" aria-label="Cerrar">✕</button>
+      <button id="lbPrev" class="nav prev" aria-label="Anterior">‹</button>
+      <img id="lbImg" alt="Vista" />
+      <button id="lbNext" class="nav next" aria-label="Siguiente">›</button>
+      <div class="row tools">
+        <button id="zOut" class="chip">−</button>
+        <button id="zReset" class="chip">100%</button>
+        <button id="zIn" class="chip">＋</button>
+        <button id="openNew" class="chip">↗ Abrir</button>
       </div>
-      <button class="nav prev" id="lbPrev" aria-label="Anterior">❮</button>
-      <button class="nav next" id="lbNext" aria-label="Siguiente">❯</button>
+      <div class="lb-tip">Usa ← → o clic para navegar</div>
     </div>
   </div>
 
   <!-- Modal -->
-  <div id="modal" class="modal hidden" aria-hidden="true">
-    <div class="sheet">
+  <div id="modal" class="modal hidden">
+    <div class="sheet" role="dialog" aria-modal="true">
       <div class="sheet-head">
-        <h3 id="modalTitle">Título</h3>
-        <button id="modalClose" class="x" aria-label="Cerrar">✕</button>
+        <strong id="modalTitle">Modal</strong>
+        <button id="modalClose" class="x">✕</button>
       </div>
       <div id="modalBody" class="sheet-body"></div>
     </div>
   </div>
 
-  <footer class="footer">© <span id="yy"></span> Stradivaryus Tools</footer>
+  <!-- SDK PayPal (puedes cambiar client-id) -->
+  <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
 
-  <script src="app.js" defer></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', ()=> {
-      const y=document.getElementById('yy');
-      if(y) y.textContent=new Date().getFullYear();
-    });
-  </script>
+  <!-- jsPDF + autoTable para PDF de presupuestos -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- App -->
+  <script src="./app.js"></script>
 </body>
 </html>
