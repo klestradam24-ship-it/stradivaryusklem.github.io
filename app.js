@@ -199,7 +199,260 @@
         g.fillStyle=grd; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
       }
       requestAnimationFrame(draw);
-    })();
+    /* === ADD-ON v3 (guard) === */
+if(!window.__st_addon_v3){
+window.__st_addon_v3 = true;
+
+// Config
+const ENABLE_CLOUD_UPLOAD = false; // activa si configuras Firebase Storage
+
+// IndexedDB helpers
+const IDB_NAME='st-media'; const IDB_STORE='img';
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(IDB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbPut(key, blob){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(blob, key); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function idbGetURL(key){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const rq=tx.objectStore(IDB_STORE).get(key); rq.onsuccess=()=>{ const b=rq.result; res(b? URL.createObjectURL(b) : ''); }; rq.onerror=()=>rej(rq.error); }); }
+
+// Firebase Storage (lazy)
+async function cloudReady(){ try{ if(!FB||!FB.app) return null; if(!FB.getStorage){ const mod=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js'); FB.getStorage=mod.getStorage; FB.ref=mod.ref; FB.uploadBytes=mod.uploadBytes; FB.getDownloadURL=mod.getDownloadURL; FB.storage=FB.getStorage(FB.app);} return FB; }catch{return null;} }
+async function cloudUploadBlob(path, blob){ try{ if(!ENABLE_CLOUD_UPLOAD) return null; const f=await cloudReady(); if(!f||!f.storage) return null; const r=f.ref(f.storage, path); await f.uploadBytes(r, blob); return await f.getDownloadURL(r); }catch(e){ console.warn('Cloud upload error', e); return null; } }
+
+// Dual import (thumb + original)
+async function readAsDataURL(file){ return await new Promise((res)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); }
+async function importDualChunked(files, thumbDim, thumbQ, fullDim, fullQ, cloudPathPrefix){
+  const thumbs=[], keys=[], urls=[]; let processed=0;
+  for(const f of Array.from(files)){
+    const data = await readAsDataURL(f);
+    const t = await makeThumb(data, thumbDim, thumbQ);
+    const full = await makeThumb(data, fullDim, fullQ);
+    const key = 'img_'+u();
+    await idbPut(key, dataURLtoBlob(full));
+    thumbs.push(t); keys.push(key);
+    const maybe = await cloudUploadBlob(`${cloudPathPrefix}/${Date.now()}_${processed}.png`, dataURLtoBlob(full));
+    urls.push(maybe);
+    processed++; if(processed % 20 === 0){ await new Promise(r=>setTimeout(r,0)); }
+  }
+  return {thumbs, keys, urls};
+}
+
+// Modal de previsualización con eliminación por item
+async function previewAndImport(files, opts){
+  const list = Array.from(files);
+  const datas = await Promise.all(list.map(readAsDataURL));
+  openModal('Revisar imágenes', `
+    <div class="thumbs" id="preGrid" style="max-height:50vh;overflow:auto"></div>
+    <div class="row" style="margin-top:8px">
+      <span class="muted" id="preCount"></span>
+      <div style="flex:1"></div>
+      <button class="btn" id="preCancel">Cancelar</button>
+      <button class="btn primary" id="preOK">Importar</button>
+    </div>
+  `);
+  const grid = $('#preGrid'); const count = $('#preCount');
+  let keep = datas.map((src,ix)=>({ix,src,keep:true}));
+  function paint(){
+    grid.innerHTML = keep.map((k,i)=>`
+      <div class="thumb">
+        <img loading="lazy" src="${k.src}">
+        <button class="chip danger" data-del="${i}">Eliminar</button>
+      </div>`).join('');
+    count.textContent = `${keep.length} seleccionadas`;
+    grid.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ keep.splice(Number(b.dataset.del),1); paint(); });
+  }
+  paint();
+  return await new Promise((resolve)=>{
+    $('#preCancel').onclick=()=>{ closeModal(); resolve(null); };
+    $('#preOK').onclick=async ()=>{
+      const accepted = keep.map(k=>k.src);
+      closeModal();
+      const {thumbs, keys, urls} = await importDualChunked(accepted.map(srcToFile), opts.td, opts.tq, opts.fd, opts.fq, opts.path);
+      resolve({thumbs, keys, urls});
+    };
+  });
+  function srcToFile(src){
+    const blob = dataURLtoBlob(src);
+    return new File([blob], 'img.png', {type: blob.type || 'image/png'});
+  }
+}
+
+// Override lightbox (usa originales si hay keys)
+const _openLB_orig = openLB;
+const _navLB_orig = navLB;
+openLB = function(list,start,keys,urls){
+  ST.lb.list = list||[]; ST.lb.idx = start||0; ST.lb.zoom=1;
+  ST.lb.keys = Array.isArray(keys) ? keys : null;
+  ST.lb.urls = Array.isArray(urls) ? urls : null;
+  const img=$('#lbImg'); if(img){
+    if (ST.lb.keys && ST.lb.keys[start]){
+      idbGetURL(ST.lb.keys[start]).then(url=>{ img.src = url || ST.lb.list[start] || ST.lb.urls?.[start] || ''; });
+    } else if (ST.lb.urls && ST.lb.urls[start]){
+      img.src = ST.lb.urls[start];
+    } else {
+      img.src = ST.lb.list[start] || '';
+    }
+  }
+  $('#lightbox')?.classList.remove('hidden'); applyZoom();
+};
+navLB = function(d){
+  if(!ST.lb.list.length){ return; }
+  ST.lb.idx=(ST.lb.idx+d+ST.lb.list.length)%ST.lb.list.length;
+  const img=$('#lbImg'); if(!img) return;
+  const i=ST.lb.idx;
+  if (ST.lb.keys && ST.lb.keys[i]){
+    idbGetURL(ST.lb.keys[i]).then(url=> img.src = url || ST.lb.list[i] || ST.lb.urls?.[i] || '');
+  } else if (ST.lb.urls && ST.lb.urls[i]){
+    img.src = ST.lb.urls[i];
+  } else {
+    img.src = ST.lb.list[i] || '';
+  }
+  ST.lb.zoom=1; applyZoom();
+};
+
+// Capturing listeners: importación masiva con preview
+document.addEventListener('change', async (e)=>{
+  const t = e.target;
+  if(!(t instanceof HTMLInputElement)) return;
+  // HERO
+  if(t.id==='importHero' && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const out = await previewAndImport(t.files, {td:1200,tq:0.75,fd:1600,fq:0.82,path:'hero'});
+    if(!out) return;
+    ST.hero.push(...out.thumbs);
+    ST.heroKeys = [...(ST.heroKeys||[]), ...out.keys];
+    LS.set('hero', ST.hero); renderHero(); (typeof renderHeroAdmin==='function') && renderHeroAdmin();
+    remoteSaveDebounced?.(); toast?.('Imágenes añadidas al muro');
+    t.value='';
+  }
+  // Productos
+  if(t.dataset && t.dataset.addimg && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const pid = t.dataset.addimg;
+    const out = await previewAndImport(t.files, {td:1000,tq:0.75,fd:1600,fq:0.82,path:`productos/${pid}`});
+    if(!out) return;
+    addImgsProducto?.(pid, out.thumbs);
+    const p = ST.productos.find(x=>x.id===pid); if(p){ p.imgKeys = [...(p.imgKeys||[]), ...out.keys]; LS.set('productos', ST.productos); }
+    remoteSaveDebounced?.(); toast?.('Imágenes añadidas');
+    t.value='';
+  }
+  // Proyectos
+  if(t.dataset && t.dataset.addimgp && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const pid = t.dataset.addimgp;
+    const out = await previewAndImport(t.files, {td:800,tq:0.72,fd:1600,fq:0.82,path:`proyectos/${pid}`});
+    if(!out) return;
+    addImgsProyecto?.(pid, out.thumbs);
+    const p = ST.proyectos.find(x=>x.id===pid); if(p){ p.imgKeys = [...(p.imgKeys||[]), ...out.keys]; LS.set('proyectos', ST.proyectos); }
+    remoteSaveDebounced?.(); toast?.(`Se añadieron ${out.thumbs.length} imagen(es)`);
+    t.value='';
+  }
+}, true);
+
+// Interceptar "Ver" para pasar keys
+document.addEventListener('click', (e)=>{
+  const t = e.target; if(!(t instanceof HTMLElement)) return;
+  const btn = t.closest('[data-lb],[data-view],[data-viewp]'); if(!btn) return;
+  // Productos (cliente)
+  if(btn.hasAttribute('data-lb')){
+    const id = btn.getAttribute('data-lb'); const p = ST.productos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+  // Productos (admin)
+  if(btn.hasAttribute('data-view')){
+    const id = btn.getAttribute('data-view'); const p = ST.productos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+  // Proyectos
+  if(btn.hasAttribute('data-viewp') || btn.hasAttribute('data-view')){
+    const id = btn.getAttribute('data-viewp') || btn.getAttribute('data-view');
+    const p = ST.proyectos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+}, true);
+
+// Sugerencias
+ST.sugerencias = LS.get('sugerencias', ST.sugerencias || []);
+if(!sessionStorage.getItem('sg_sid')) sessionStorage.setItem('sg_sid', u());
+const SG_SID = sessionStorage.getItem('sg_sid');
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  initSugerencias();
+});
+
+function initSugerencias(){
+  const btn = $('#sgSend');
+  if(btn){
+    btn.onclick = ()=>{
+      const nombre = $('#sgNombre')?.value.trim() || '';
+      const contacto = $('#sgContacto')?.value.trim() || '';
+      const tipo = $('#sgTipo')?.value || 'sugerencia';
+      const msg = $('#sgMsg')?.value.trim() || '';
+      if(!msg){ alert('El mensaje es obligatorio'); return; }
+      const rec = { id: u(), sid: SG_SID, fecha: new Date().toLocaleString(), nombre, contacto, tipo, msg };
+      ST.sugerencias.unshift(rec);
+      LS.set('sugerencias', ST.sugerencias);
+      $('#sgMsg').value='';
+      renderSugMine();
+      if(typeof pintarSugerenciasAdmin==='function') pintarSugerenciasAdmin();
+      remoteSaveDebounced?.();
+      toast?.('¡Gracias por tu comentario!');
+    };
+    renderSugMine();
+  }
+
+  const clearBtn = $('#clearSug');
+  if(clearBtn){
+    clearBtn.onclick = ()=>{
+      if(!confirm('¿Eliminar todas las sugerencias?')) return;
+      ST.sugerencias = [];
+      LS.set('sugerencias', ST.sugerencias);
+      pintarSugerenciasAdmin();
+      remoteSaveDebounced?.();
+    };
+    pintarSugerenciasAdmin();
+  }
+}
+
+function renderSugMine(){
+  const tb = $('#sgMine'); if(!tb) return;
+  const mine = ST.sugerencias.filter(s=>s.sid===SG_SID);
+  tb.innerHTML = mine.map(s=>`
+    <tr>
+      <td>${s.fecha}</td>
+      <td>${esc(s.tipo)}</td>
+      <td>${esc(s.msg)}</td>
+      <td><button class="chip danger" data-delmine="${s.id}">✕</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="muted">Aún no has enviado nada.</td></tr>`;
+  tb.querySelectorAll('[data-delmine]').forEach(b=> b.onclick=()=>{
+    const id = b.dataset.delmine;
+    const ix = ST.sugerencias.findIndex(x=>x.id===id && x.sid===SG_SID);
+    if(ix>=0){ ST.sugerencias.splice(ix,1); LS.set('sugerencias', ST.sugerencias); renderSugMine(); if(typeof pintarSugerenciasAdmin==='function') pintarSugerenciasAdmin(); remoteSaveDebounced?.(); }
+  });
+}
+
+function pintarSugerenciasAdmin(){
+  const tb = $('#tbSug'); if(!tb) return;
+  tb.innerHTML = ST.sugerencias.map((s,ix)=>`
+    <tr>
+      <td>${s.fecha}</td>
+      <td>${esc(s.nombre||'')}</td>
+      <td>${esc(s.contacto||'')}</td>
+      <td>${esc(s.tipo||'')}</td>
+      <td>${esc(s.msg||'')}</td>
+      <td class="muted" title="ID de sesión">${esc(s.sid||'')}</td>
+      <td><button class="chip danger" data-delsug="${ix}">✕</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="muted">Sin sugerencias aún.</td></tr>`;
+  tb.querySelectorAll('[data-delsug]').forEach(b=> b.onclick=()=>{
+    ST.sugerencias.splice(Number(b.dataset.delsug),1);
+    LS.set('sugerencias', ST.sugerencias);
+    pintarSugerenciasAdmin();
+    remoteSaveDebounced?.();
+  });
+}
+
+} // end guard
+/* === FIN ADD-ON v3 === */
+})();
   }
 
   /* ===== Navegación ===== */
@@ -845,7 +1098,75 @@ function delProyecto(id){
   }
   function qty(ix, d){ ix=Number(ix); ST.carrito[ix].cant+=d; if(ST.carrito[ix].cant<=0) ST.carrito.splice(ix,1); LS.set('carrito',ST.carrito); renderCarrito(); }
   function delCart(ix){ ST.carrito.splice(Number(ix),1); LS.set('carrito',ST.carrito); renderCarrito(); }
-  function updateTotals(){ const sub=ST.carrito.reduce((s,i)=>s+i.precio*i.cant,0); const imp=sub*(ST.tax/100); const tot=sub+imp; $('#subTxt').textContent=cur(sub); $('#taxRateTxt').textContent=cur(ST.tax); $('#taxTxt').textContent=cur(imp); $('#totTxt').textContent=cur(tot); }
+ function updateTotals(){ 
+  const sub=ST.carrito.reduce((s,i)=>s+i.precio*i.cant,0); 
+  const imp=sub*(ST.tax/100); 
+  const tot=sub+imp; 
+  $('#subTxt').textContent=cur(sub); 
+  $('#taxRateTxt').textContent=cur(ST.tax); 
+  $('#taxTxt').textContent=cur(imp); 
+  $('#totTxt').textContent=cur(tot); 
+}
+
+/* ===== Presupuestos / Recibos ===== */
+async function generarRecibo(){
+  if(!ST.carrito.length){ return alert("El carrito está vacío"); }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text("Stradivaryus Tools", 14, 20);
+  doc.setFontSize(12);
+  doc.text("Recibo de compra", 14, 28);
+  doc.text(new Date().toLocaleString(), 14, 36);
+
+  const rows = ST.carrito.map(i=>[i.nombre, i.cant, "$"+cur(i.precio), "$"+cur(i.precio*i.cant)]);
+  const sub = ST.carrito.reduce((s,i)=>s+i.precio*i.cant,0);
+  const tax = sub*(ST.tax/100);
+  const tot = sub+tax;
+
+  doc.autoTable({
+    head:[["Producto","Cant.","Precio","Total"]],
+    body: rows,
+    startY: 42
+  });
+
+  doc.text(`Subtotal: $${cur(sub)}`, 14, doc.lastAutoTable.finalY+10);
+  doc.text(`Impuesto (${ST.tax}%): $${cur(tax)}`, 14, doc.lastAutoTable.finalY+16);
+  doc.text(`Total: $${cur(tot)}`, 14, doc.lastAutoTable.finalY+22);
+
+  doc.save(`recibo_${Date.now()}.pdf`);
+}
+
+async function generarPresupuesto(){
+  if(!ST.carrito.length){ return alert("El carrito está vacío"); }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text("Stradivaryus Tools", 14, 20);
+  doc.setFontSize(12);
+  doc.text("Presupuesto", 14, 28);
+  doc.text(new Date().toLocaleDateString(), 14, 36);
+
+  const rows = ST.carrito.map(i=>[i.nombre, i.cant, "$"+cur(i.precio), "$"+cur(i.precio*i.cant)]);
+  const sub = ST.carrito.reduce((s,i)=>s+i.precio*i.cant,0);
+  const tax = sub*(ST.tax/100);
+  const tot = sub+tax;
+
+  doc.autoTable({
+    head:[["Producto","Cant.","Precio","Total"]],
+    body: rows,
+    startY: 42
+  });
+
+  doc.setFontSize(12);
+  doc.text(`Subtotal: $${cur(sub)}`, 14, doc.lastAutoTable.finalY+10);
+  doc.text(`Impuesto (${ST.tax}%): $${cur(tax)}`, 14, doc.lastAutoTable.finalY+16);
+  doc.text(`TOTAL ESTIMADO: $${cur(tot)}`, 14, doc.lastAutoTable.finalY+22);
+
+  doc.save(`presupuesto_${Date.now()}.pdf`);
+}
 
   // ======= Pago =======
   async function pagar(){
@@ -1661,7 +1982,8 @@ function unpackState(data){
   if(Array.isArray(data.proyectos))  { ST.proyectos = data.proyectos; LS.set('proyectos', ST.proyectos); }
   if(Number.isFinite(data.tax))      { ST.tax = Number(data.tax); LS.set('taxRate', ST.tax); }
 
-  // Refrescar vistas
+  if(Array.isArray(data.sugerencias)) { ST.sugerencias = data.sugerencias; LS.set('sugerencias', ST.sugerencias); }
+// Refrescar vistas
   renderHero(); renderHeroAdmin?.();
   renderProductosCliente(); renderProductosAdmin?.();
   renderProyectosCliente(); renderProyectosAdmin?.();
@@ -1726,4 +2048,257 @@ function remoteSubscribe(){
 }
 
 // ===== FIN IIFE =====
+/* === ADD-ON v3 (guard) === */
+if(!window.__st_addon_v3){
+window.__st_addon_v3 = true;
+
+// Config
+const ENABLE_CLOUD_UPLOAD = false; // activa si configuras Firebase Storage
+
+// IndexedDB helpers
+const IDB_NAME='st-media'; const IDB_STORE='img';
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(IDB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbPut(key, blob){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(blob, key); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function idbGetURL(key){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const rq=tx.objectStore(IDB_STORE).get(key); rq.onsuccess=()=>{ const b=rq.result; res(b? URL.createObjectURL(b) : ''); }; rq.onerror=()=>rej(rq.error); }); }
+
+// Firebase Storage (lazy)
+async function cloudReady(){ try{ if(!FB||!FB.app) return null; if(!FB.getStorage){ const mod=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js'); FB.getStorage=mod.getStorage; FB.ref=mod.ref; FB.uploadBytes=mod.uploadBytes; FB.getDownloadURL=mod.getDownloadURL; FB.storage=FB.getStorage(FB.app);} return FB; }catch{return null;} }
+async function cloudUploadBlob(path, blob){ try{ if(!ENABLE_CLOUD_UPLOAD) return null; const f=await cloudReady(); if(!f||!f.storage) return null; const r=f.ref(f.storage, path); await f.uploadBytes(r, blob); return await f.getDownloadURL(r); }catch(e){ console.warn('Cloud upload error', e); return null; } }
+
+// Dual import (thumb + original)
+async function readAsDataURL(file){ return await new Promise((res)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); }
+async function importDualChunked(files, thumbDim, thumbQ, fullDim, fullQ, cloudPathPrefix){
+  const thumbs=[], keys=[], urls=[]; let processed=0;
+  for(const f of Array.from(files)){
+    const data = await readAsDataURL(f);
+    const t = await makeThumb(data, thumbDim, thumbQ);
+    const full = await makeThumb(data, fullDim, fullQ);
+    const key = 'img_'+u();
+    await idbPut(key, dataURLtoBlob(full));
+    thumbs.push(t); keys.push(key);
+    const maybe = await cloudUploadBlob(`${cloudPathPrefix}/${Date.now()}_${processed}.png`, dataURLtoBlob(full));
+    urls.push(maybe);
+    processed++; if(processed % 20 === 0){ await new Promise(r=>setTimeout(r,0)); }
+  }
+  return {thumbs, keys, urls};
+}
+
+// Modal de previsualización con eliminación por item
+async function previewAndImport(files, opts){
+  const list = Array.from(files);
+  const datas = await Promise.all(list.map(readAsDataURL));
+  openModal('Revisar imágenes', `
+    <div class="thumbs" id="preGrid" style="max-height:50vh;overflow:auto"></div>
+    <div class="row" style="margin-top:8px">
+      <span class="muted" id="preCount"></span>
+      <div style="flex:1"></div>
+      <button class="btn" id="preCancel">Cancelar</button>
+      <button class="btn primary" id="preOK">Importar</button>
+    </div>
+  `);
+  const grid = $('#preGrid'); const count = $('#preCount');
+  let keep = datas.map((src,ix)=>({ix,src,keep:true}));
+  function paint(){
+    grid.innerHTML = keep.map((k,i)=>`
+      <div class="thumb">
+        <img loading="lazy" src="${k.src}">
+        <button class="chip danger" data-del="${i}">Eliminar</button>
+      </div>`).join('');
+    count.textContent = `${keep.length} seleccionadas`;
+    grid.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ keep.splice(Number(b.dataset.del),1); paint(); });
+  }
+  paint();
+  return await new Promise((resolve)=>{
+    $('#preCancel').onclick=()=>{ closeModal(); resolve(null); };
+    $('#preOK').onclick=async ()=>{
+      const accepted = keep.map(k=>k.src);
+      closeModal();
+      const {thumbs, keys, urls} = await importDualChunked(accepted.map(srcToFile), opts.td, opts.tq, opts.fd, opts.fq, opts.path);
+      resolve({thumbs, keys, urls});
+    };
+  });
+  function srcToFile(src){
+    const blob = dataURLtoBlob(src);
+    return new File([blob], 'img.png', {type: blob.type || 'image/png'});
+  }
+}
+
+// Override lightbox (usa originales si hay keys)
+const _openLB_orig = openLB;
+const _navLB_orig = navLB;
+openLB = function(list,start,keys,urls){
+  ST.lb.list = list||[]; ST.lb.idx = start||0; ST.lb.zoom=1;
+  ST.lb.keys = Array.isArray(keys) ? keys : null;
+  ST.lb.urls = Array.isArray(urls) ? urls : null;
+  const img=$('#lbImg'); if(img){
+    if (ST.lb.keys && ST.lb.keys[start]){
+      idbGetURL(ST.lb.keys[start]).then(url=>{ img.src = url || ST.lb.list[start] || ST.lb.urls?.[start] || ''; });
+    } else if (ST.lb.urls && ST.lb.urls[start]){
+      img.src = ST.lb.urls[start];
+    } else {
+      img.src = ST.lb.list[start] || '';
+    }
+  }
+  $('#lightbox')?.classList.remove('hidden'); applyZoom();
+};
+navLB = function(d){
+  if(!ST.lb.list.length){ return; }
+  ST.lb.idx=(ST.lb.idx+d+ST.lb.list.length)%ST.lb.list.length;
+  const img=$('#lbImg'); if(!img) return;
+  const i=ST.lb.idx;
+  if (ST.lb.keys && ST.lb.keys[i]){
+    idbGetURL(ST.lb.keys[i]).then(url=> img.src = url || ST.lb.list[i] || ST.lb.urls?.[i] || '');
+  } else if (ST.lb.urls && ST.lb.urls[i]){
+    img.src = ST.lb.urls[i];
+  } else {
+    img.src = ST.lb.list[i] || '';
+  }
+  ST.lb.zoom=1; applyZoom();
+};
+
+// Capturing listeners: importación masiva con preview
+document.addEventListener('change', async (e)=>{
+  const t = e.target;
+  if(!(t instanceof HTMLInputElement)) return;
+  // HERO
+  if(t.id==='importHero' && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const out = await previewAndImport(t.files, {td:1200,tq:0.75,fd:1600,fq:0.82,path:'hero'});
+    if(!out) return;
+    ST.hero.push(...out.thumbs);
+    ST.heroKeys = [...(ST.heroKeys||[]), ...out.keys];
+    LS.set('hero', ST.hero); renderHero(); (typeof renderHeroAdmin==='function') && renderHeroAdmin();
+    remoteSaveDebounced?.(); toast?.('Imágenes añadidas al muro');
+    t.value='';
+  }
+  // Productos
+  if(t.dataset && t.dataset.addimg && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const pid = t.dataset.addimg;
+    const out = await previewAndImport(t.files, {td:1000,tq:0.75,fd:1600,fq:0.82,path:`productos/${pid}`});
+    if(!out) return;
+    addImgsProducto?.(pid, out.thumbs);
+    const p = ST.productos.find(x=>x.id===pid); if(p){ p.imgKeys = [...(p.imgKeys||[]), ...out.keys]; LS.set('productos', ST.productos); }
+    remoteSaveDebounced?.(); toast?.('Imágenes añadidas');
+    t.value='';
+  }
+  // Proyectos
+  if(t.dataset && t.dataset.addimgp && t.files && t.files.length){
+    e.stopPropagation(); e.stopImmediatePropagation();
+    const pid = t.dataset.addimgp;
+    const out = await previewAndImport(t.files, {td:800,tq:0.72,fd:1600,fq:0.82,path:`proyectos/${pid}`});
+    if(!out) return;
+    addImgsProyecto?.(pid, out.thumbs);
+    const p = ST.proyectos.find(x=>x.id===pid); if(p){ p.imgKeys = [...(p.imgKeys||[]), ...out.keys]; LS.set('proyectos', ST.proyectos); }
+    remoteSaveDebounced?.(); toast?.(`Se añadieron ${out.thumbs.length} imagen(es)`);
+    t.value='';
+  }
+}, true);
+
+// Interceptar "Ver" para pasar keys
+document.addEventListener('click', (e)=>{
+  const t = e.target; if(!(t instanceof HTMLElement)) return;
+  const btn = t.closest('[data-lb],[data-view],[data-viewp]'); if(!btn) return;
+  // Productos (cliente)
+  if(btn.hasAttribute('data-lb')){
+    const id = btn.getAttribute('data-lb'); const p = ST.productos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+  // Productos (admin)
+  if(btn.hasAttribute('data-view')){
+    const id = btn.getAttribute('data-view'); const p = ST.productos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+  // Proyectos
+  if(btn.hasAttribute('data-viewp') || btn.hasAttribute('data-view')){
+    const id = btn.getAttribute('data-viewp') || btn.getAttribute('data-view');
+    const p = ST.proyectos.find(x=>x.id===id);
+    if(p){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openLB(p.imgs||[], 0, p.imgKeys||null); }
+  }
+}, true);
+
+// Sugerencias
+ST.sugerencias = LS.get('sugerencias', ST.sugerencias || []);
+if(!sessionStorage.getItem('sg_sid')) sessionStorage.setItem('sg_sid', u());
+const SG_SID = sessionStorage.getItem('sg_sid');
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  initSugerencias();
+});
+
+function initSugerencias(){
+  const btn = $('#sgSend');
+  if(btn){
+    btn.onclick = ()=>{
+      const nombre = $('#sgNombre')?.value.trim() || '';
+      const contacto = $('#sgContacto')?.value.trim() || '';
+      const tipo = $('#sgTipo')?.value || 'sugerencia';
+      const msg = $('#sgMsg')?.value.trim() || '';
+      if(!msg){ alert('El mensaje es obligatorio'); return; }
+      const rec = { id: u(), sid: SG_SID, fecha: new Date().toLocaleString(), nombre, contacto, tipo, msg };
+      ST.sugerencias.unshift(rec);
+      LS.set('sugerencias', ST.sugerencias);
+      $('#sgMsg').value='';
+      renderSugMine();
+      if(typeof pintarSugerenciasAdmin==='function') pintarSugerenciasAdmin();
+      remoteSaveDebounced?.();
+      toast?.('¡Gracias por tu comentario!');
+    };
+    renderSugMine();
+  }
+
+  const clearBtn = $('#clearSug');
+  if(clearBtn){
+    clearBtn.onclick = ()=>{
+      if(!confirm('¿Eliminar todas las sugerencias?')) return;
+      ST.sugerencias = [];
+      LS.set('sugerencias', ST.sugerencias);
+      pintarSugerenciasAdmin();
+      remoteSaveDebounced?.();
+    };
+    pintarSugerenciasAdmin();
+  }
+}
+
+function renderSugMine(){
+  const tb = $('#sgMine'); if(!tb) return;
+  const mine = ST.sugerencias.filter(s=>s.sid===SG_SID);
+  tb.innerHTML = mine.map(s=>`
+    <tr>
+      <td>${s.fecha}</td>
+      <td>${esc(s.tipo)}</td>
+      <td>${esc(s.msg)}</td>
+      <td><button class="chip danger" data-delmine="${s.id}">✕</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="muted">Aún no has enviado nada.</td></tr>`;
+  tb.querySelectorAll('[data-delmine]').forEach(b=> b.onclick=()=>{
+    const id = b.dataset.delmine;
+    const ix = ST.sugerencias.findIndex(x=>x.id===id && x.sid===SG_SID);
+    if(ix>=0){ ST.sugerencias.splice(ix,1); LS.set('sugerencias', ST.sugerencias); renderSugMine(); if(typeof pintarSugerenciasAdmin==='function') pintarSugerenciasAdmin(); remoteSaveDebounced?.(); }
+  });
+}
+
+function pintarSugerenciasAdmin(){
+  const tb = $('#tbSug'); if(!tb) return;
+  tb.innerHTML = ST.sugerencias.map((s,ix)=>`
+    <tr>
+      <td>${s.fecha}</td>
+      <td>${esc(s.nombre||'')}</td>
+      <td>${esc(s.contacto||'')}</td>
+      <td>${esc(s.tipo||'')}</td>
+      <td>${esc(s.msg||'')}</td>
+      <td class="muted" title="ID de sesión">${esc(s.sid||'')}</td>
+      <td><button class="chip danger" data-delsug="${ix}">✕</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="muted">Sin sugerencias aún.</td></tr>`;
+  tb.querySelectorAll('[data-delsug]').forEach(b=> b.onclick=()=>{
+    ST.sugerencias.splice(Number(b.dataset.delsug),1);
+    LS.set('sugerencias', ST.sugerencias);
+    pintarSugerenciasAdmin();
+    remoteSaveDebounced?.();
+  });
+}
+
+} // end guard
+/* === FIN ADD-ON v3 === */
 })();
