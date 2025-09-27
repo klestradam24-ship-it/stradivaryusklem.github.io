@@ -219,3 +219,5 @@ html.censor-tap.tap-revealed .lb-tip{ display:none; }
 
 /* Fallback marker */
 img[data-fallback]{ background:#0b1018; }
+
+textarea.input{min-height:110px; resize:vertical}
