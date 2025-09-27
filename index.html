@@ -41,6 +41,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js" defer></script>
 </head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
 <body>
   <!-- Fondo animado -->
   <canvas id="bg" aria-hidden="true"></canvas>
@@ -80,6 +83,10 @@
 
     <section id="view-carrito" class="view">
       <div class="view-head"><h2>Carrito</h2></div>
+<div class="row">
+  <button class="btn primary" onclick="generarRecibo()">🧾 Imprimir Recibo</button>
+  <button class="btn ghost" onclick="generarPresupuesto()">📄 Generar Presupuesto</button>
+</div>
 
       <div class="card">
         <div class="row wrap">
@@ -191,7 +198,40 @@
     </section>
 
     <!-- ======== Admin ======== -->
-    <section id="view-admin" class="view">
+    <!-- ======== Sugerencias (Cliente) ======== -->
+<section id="view-sugerencias" class="view">
+  <div class="view-head"><h2>Sugerencias / Quejas</h2></div>
+  <div class="card">
+    <p>¿Cómo podemos mejorar?</p>
+    <div class="row wrap">
+      <input id="sgNombre" class="input" placeholder="Tu nombre (opcional)">
+      <input id="sgContacto" class="input" placeholder="Teléfono o email (opcional)">
+    </div>
+    <div class="row wrap" style="align-items:center">
+      <select id="sgTipo" class="input" style="max-width:220px">
+        <option value="sugerencia" selected>Sugerencia</option>
+        <option value="queja">Queja</option>
+      </select>
+      <span class="muted">Elige el tipo</span>
+    </div>
+    <textarea id="sgMsg" class="input" rows="4" placeholder="Escribe tu mensaje (requerido)"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="sgSend" class="btn primary">Enviar</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Mis envíos</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Mensaje</th><th></th></tr></thead>
+        <tbody id="sgMine"></tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top:6px">Solo puedes eliminar mensajes enviados desde este dispositivo.</p>
+  </div>
+</section>
+
+<section id="view-admin" class="view">
       <div class="view-head"><h2>Panel Admin</h2></div>
 
       <!-- Acceso -->
@@ -320,7 +360,17 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>Presupuestos Generados</h3><button id="clearPres" class="btn danger">Limpiar</button></div>
+  <div class="card-head"><h3>Sugerencias (Cliente)</h3><button id="clearSug" class="btn danger">Limpiar</button></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Nombre</th><th>Contacto</th><th>Tipo</th><th>Mensaje</th><th>SID</th><th></th></tr></thead>
+      <tbody id="tbSug"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Presupuestos Generados</h3><button id="clearPres" class="btn danger">Limpiar</button></div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Fecha</th><th>Cliente</th><th>Proyecto</th><th>Monto</th><th></th><th></th></tr></thead>
