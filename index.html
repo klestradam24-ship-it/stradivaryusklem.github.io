@@ -77,7 +77,7 @@
   <main id="main">
     <!-- ======== Cliente ======== -->
     <section id="view-productos" class="view show">
-      <div class="view-head"><h2>Herramientas</h2></div>
+      <div class="view-head"><h2>Herramientas</h2><button id="btnSugerir" class="chip">📝 Sugerir</button></div>
       <div id="gridProductos" class="grid cards"></div>
     </section>
 
@@ -202,17 +202,13 @@
 <section id="view-sugerencias" class="view">
   <div class="view-head"><h2>Sugerencias / Quejas</h2></div>
   <div class="card">
-    <p>¿Cómo podemos mejorar?</p>
     <div class="row wrap">
       <input id="sgNombre" class="input" placeholder="Tu nombre (opcional)">
       <input id="sgContacto" class="input" placeholder="Teléfono o email (opcional)">
-    </div>
-    <div class="row wrap" style="align-items:center">
       <select id="sgTipo" class="input" style="max-width:220px">
         <option value="sugerencia" selected>Sugerencia</option>
         <option value="queja">Queja</option>
       </select>
-      <span class="muted">Elige el tipo</span>
     </div>
     <textarea id="sgMsg" class="input" rows="4" placeholder="Escribe tu mensaje (requerido)"></textarea>
     <div class="row" style="margin-top:10px">
