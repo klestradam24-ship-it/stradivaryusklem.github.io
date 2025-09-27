@@ -12,17 +12,17 @@ const CORE_ASSETS = [
   "./manifest.webmanifest",
 
   // Íconos PWA
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/maskable-192.png",
-  "./icons/maskable-512.png",
+  ".icon-192.png",
+  ".icon-512.png",
+  ".maskable-192.png",
+  ".maskable-512.png",
 
   // Imágenes base que usa tu app (ajusta según tengas)
-  "./muro/1.jpg",
-  "./muro/2.jpg",
-  "./muro/3.jpg",
-  "./venta/1.jpg",
-  "./proyect1/1.jpg",
+   // "./muro/1.jpg",
+   // "./muro/2.jpg",
+   // "./muro/3.jpg",
+   // "./venta/1.jpg",
+   // "./proyect1/1.jpg",
 ];
 
 /* Instalación: precache */
