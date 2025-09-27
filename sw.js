@@ -42,7 +42,7 @@ self.addEventListener("activate", (event) => {
   );
   self.clients.claim();
 });
- 
+
 /* Fetch: Stale-While-Revalidate para el mismo origen */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
